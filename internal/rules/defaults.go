@@ -461,6 +461,7 @@ var Default = map[string]*Rule{
 		Subcommands: map[string]*Rule{
 			"get":           {Default: Allow},
 			"describe":      {Default: Allow},
+			"explain":       {Default: Allow},
 			"logs":          {Default: Allow},
 			"top":           {Default: Allow},
 			"api-resources": {Default: Allow},
@@ -474,13 +475,19 @@ var Default = map[string]*Rule{
 					"whoami":    {Default: Allow},
 				},
 			},
+			"rollout": {
+				Default: NoOpinion,
+				Subcommands: map[string]*Rule{
+					"status":  {Default: Allow},
+					"history": {Default: Allow},
+				},
+			},
 			"apply":        {Default: NoOpinion},
 			"create":       {Default: NoOpinion},
 			"delete":       {Default: NoOpinion},
 			"edit":         {Default: NoOpinion},
 			"patch":        {Default: NoOpinion},
 			"replace":      {Default: NoOpinion},
-			"rollout":      {Default: NoOpinion},
 			"scale":        {Default: NoOpinion},
 			"exec":         {Default: NoOpinion},
 			"cp":           {Default: NoOpinion},
@@ -537,7 +544,13 @@ var Default = map[string]*Rule{
 			"exec":    {Default: NoOpinion},
 			"cp":      {Default: NoOpinion},
 			"create":  {Default: NoOpinion},
-			"compose": {Default: NoOpinion},
+			"compose": {
+				Default: NoOpinion,
+				Subcommands: map[string]*Rule{
+					"ps":   {Default: Allow},
+					"logs": {Default: Allow},
+				},
+			},
 			"login":   {Default: NoOpinion},
 			"logout":  {Default: NoOpinion},
 			"tag":     {Default: NoOpinion},
