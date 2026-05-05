@@ -49,6 +49,11 @@
         '';
         };
 
+        apps.gomod2nix = {
+          type = "app";
+          program = "${gomod2nix.legacyPackages.${system}.gomod2nix}/bin/gomod2nix";
+        };
+
         devShells.default = pkgs.mkShellNoCC {
           packages = [
             gomod2nix.legacyPackages.${system}.gomod2nix
