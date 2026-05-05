@@ -1,0 +1,20 @@
+version: 2
+
+builds:
+  - main: ./cmd/crushout
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [binary]
+
+release:
+  github:
+    owner: arnarg
+    name: crushout
