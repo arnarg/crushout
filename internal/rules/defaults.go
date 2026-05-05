@@ -280,7 +280,14 @@ var Default = map[string]*Rule{
 				Default:   true,
 				DenyFlags: []string{"-c", "--coverprofile"},
 			},
-			"build":    {Default: false},
+			"build": {
+				Default: false,
+				Subcommands: map[string]*Rule{
+					// Doesn't produce any build artifact in project
+					// and is commonly run by LLMs before `go test ./...`
+					"./...": {Default: true},
+				},
+			},
 			"run":      {Default: false},
 			"install":  {Default: false},
 			"get":      {Default: false},

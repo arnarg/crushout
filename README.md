@@ -115,7 +115,6 @@ Or use a full path:
 | `git config --global user.name X` | 🔒 prompt | `--global` is denied |
 | `find . -exec rm {} \;` | 🔒 prompt | `-exec` is denied |
 | `sed -i 's/old/new/g' file` | 🔒 prompt | `-i` is denied |
-| `go build ./...` | 🔒 prompt | mutable subcommand |
 | `go mod tidy` | 🔒 prompt | nested: `mod` → `tidy` |
 | `cd /tmp && ls` | 🔒 prompt | `cd` escapes root |
 | `cd .. && ls` | 🔒 prompt | `cd` escapes root |
@@ -169,6 +168,74 @@ Resolution walks arguments left-to-right:
 1. `DenyFlags` are checked at each level against all remaining args
 2. If an arg matches a `Subcommands` key, descend into that rule
 3. When no deeper match is found, use `Default`
+
+## Custom config file
+
+Instead of editing the source, you can drop `.crushout.yml` or `.crushout.yaml` in your project root. crushout looks for it in the `cwd` passed by Crush (typically the repo root).
+
+### YAML format
+
+```yaml
+overwrite_defaults: false
+rules:
+  nix:
+    default: false
+    subcommands:
+      build:
+        default: true
+  git:
+    subcommands:
+      status:
+        default: false  # require confirmation even for status
+```
+
+### Merge behavior
+
+When `overwrite_defaults: false` (the default), user rules are **deep-merged** with the built-in rules. Your values win where they differ, but anything you omit is inherited from the defaults.
+
+When `overwrite_defaults: true`, only the rules you specify are active; the built-ins are ignored entirely.
+
+### Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `overwrite_defaults` | bool | If `true`, ignore built-in rules. Default is `false`. |
+| `rules` | map | Map of command name → rule. |
+| `rules.*.default` | bool | Allow unknown subcommands. Defaults to `false` if not set. |
+| `rules.*.deny_flags` | []string | Flags that always require confirmation. |
+| `rules.*.subcommands` | map | Recursive map of subcommand name → rule. |
+
+### Examples
+
+**Allow `nix build` but deny everything else under `nix`:**
+
+```yaml
+rules:
+  nix:
+    default: false
+    subcommands:
+      build:
+        default: true
+```
+
+**Disable `git status` (normally allowed):**
+
+```yaml
+rules:
+  git:
+    subcommands:
+      status:
+        default: false
+```
+
+**Start fresh with only `ls` allowed:**
+
+```yaml
+overwrite_defaults: true
+rules:
+  ls:
+    default: true
+```
 
 ## Hook protocol
 

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/arnarg/crushout/internal/checker"
+	"github.com/arnarg/crushout/internal/config"
 	"github.com/arnarg/crushout/internal/hook"
 	"github.com/arnarg/crushout/internal/rules"
 )
@@ -32,10 +33,19 @@ func main() {
 	}
 	homeDir, _ := os.UserHomeDir()
 
+	// Load custom config if present
+	ruleSet := rules.Default
+	cfg, err := config.Load(rootDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "crushout: %v\n", err)
+	} else if cfg != nil {
+		ruleSet = config.ToRulesWithDefaults(cfg)
+	}
+
 	c := &checker.Checker{
 		RootDir: rootDir,
 		HomeDir: homeDir,
-		Rules:   rules.Default,
+		Rules:   ruleSet,
 	}
 
 	if ok, _ := c.IsReadOnly(input.ToolInput.Command); ok {

@@ -1,6 +1,14 @@
 schema = 3
 
 [mod]
+  [mod.'github.com/kr/text']
+    version = 'v0.2.0'
+    hash = 'sha256-fadcWxZOORv44oak3jTxm6YcITcFxdGt4bpn869HxUE='
+
   [mod.'github.com/odvcencio/gotreesitter']
     version = 'v0.15.3'
     hash = 'sha256-/9Tb31ZrfXGYn5cdVk4xQ1ayhJAhOcsGCCDg/Bgrigs='
+
+  [mod.'gopkg.in/yaml.v3']
+    version = 'v3.0.1'
+    hash = 'sha256-FqL9TKYJ0XkNwJFnq9j0VvJ5ZUU1RvH/52h/f5bkYAU='

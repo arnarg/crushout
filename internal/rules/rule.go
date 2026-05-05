@@ -4,9 +4,10 @@ import "strings"
 
 // Rule is a recursive allow/deny rule.
 type Rule struct {
-	Subcommands map[string]*Rule `json:"subcommands,omitempty"`
-	DenyFlags   []string         `json:"deny_flags,omitempty"`
-	Default     bool             `json:"default"`
+	Subcommands     map[string]*Rule `json:"subcommands,omitempty"`
+	DenyFlags       []string         `json:"deny_flags,omitempty"`
+	Default         bool             `json:"default"`
+	DefaultExplicit bool             `json:"-"` // true if Default was explicitly set (used for merge)
 }
 
 // Allow walks args as a subcommand chain, checking DenyFlags at each level.
@@ -41,4 +42,3 @@ func (r *Rule) resolve(args []string) (bool, string) {
 
 	return current.Default, ""
 }
-

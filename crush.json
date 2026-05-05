@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^bash$",
+        "command": "./result/bin/crushout",
+        "timeout": 5
+      }
+    ]
+  }
+}
