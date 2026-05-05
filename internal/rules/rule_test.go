@@ -370,37 +370,6 @@ func TestDefaultRules_NonMutableCommands(t *testing.T) {
 	}
 }
 
-func TestDefaultRules_MutableCommands(t *testing.T) {
-	tests := []struct {
-		name string
-		args []string
-	}{
-		{"rm", []string{"-rf", "/"}},
-		{"mv", []string{"a", "b"}},
-		{"cp", []string{"a", "b"}},
-		{"sudo", []string{"rm", "-rf", "/"}},
-		{"curl", []string{"https://example.com"}},
-		{"make", []string{"build"}},
-		{"npm", []string{"install"}},
-		{"python", []string{"-c", "print(1)"}},
-		{"bash", []string{"-c", "echo hi"}},
-		{"xargs", []string{"rm"}},
-		{"env", []string{"FOO=bar", "rm", "-rf", "/"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rule, exists := Default[tt.name]
-			if !exists {
-				t.Fatalf("no rule for %q", tt.name)
-			}
-			if rule.Allow(tt.args) {
-				t.Errorf("%q %v should be denied", tt.name, tt.args)
-			}
-		})
-	}
-}
-
 func TestDefaultRules_FlagDependent(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -650,7 +619,7 @@ func TestDefaultRules_KubectlSubcommands(t *testing.T) {
 		{[]string{"edit", "deploy/my-deploy"}, false},
 		{[]string{"exec", "-it", "my-pod", "--", "bash"}, false},
 		{[]string{"scale", "--replicas=3", "deploy/my-deploy"}, false},
-		{[]string{"rollout", "status", "deploy/my-deploy"}, false},
+		{[]string{"rollout", "status", "deploy/my-deploy"}, true},
 	}
 
 	for _, tt := range tests {

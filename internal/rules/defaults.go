@@ -81,51 +81,6 @@ var Default = map[string]*Rule{
 		DenyFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprint", "-fls"},
 	},
 
-	// ── Mutable ─────────────────────────────────────────────
-	"rm":      {Default: NoOpinion},
-	"rmdir":   {Default: NoOpinion},
-	"mv":      {Default: NoOpinion},
-	"cp":      {Default: NoOpinion},
-	"mkdir":   {Default: NoOpinion},
-	"touch":   {Default: NoOpinion},
-	"chmod":   {Default: NoOpinion},
-	"chown":   {Default: NoOpinion},
-	"chgrp":   {Default: NoOpinion},
-	"ln":      {Default: NoOpinion},
-	"tee":     {Default: NoOpinion},
-	"install": {Default: NoOpinion},
-	"sudo":    {Default: NoOpinion},
-	"doas":    {Default: NoOpinion},
-	"su":      {Default: NoOpinion},
-	"kill":    {Default: NoOpinion},
-	"pkill":   {Default: NoOpinion},
-	"curl":    {Default: NoOpinion},
-	"wget":    {Default: NoOpinion},
-	"ssh":     {Default: NoOpinion},
-	"scp":     {Default: NoOpinion},
-	"rsync":   {Default: NoOpinion},
-	"nc":      {Default: NoOpinion},
-	"make":    {Default: NoOpinion},
-	"xargs":   {Default: NoOpinion},
-	"awk":     {Default: NoOpinion},
-	"perl":    {Default: NoOpinion},
-	"python":  {Default: NoOpinion},
-	"python3": {Default: NoOpinion},
-	"ruby":    {Default: NoOpinion},
-	"node":    {Default: NoOpinion},
-	"bash":    {Default: NoOpinion},
-	"sh":      {Default: NoOpinion},
-	"eval":    {Default: NoOpinion},
-	"exec":    {Default: NoOpinion},
-	"source":  {Default: NoOpinion},
-	"apt":     {Default: NoOpinion},
-	"brew":    {Default: NoOpinion},
-	"npm":     {Default: NoOpinion},
-	"pip":     {Default: NoOpinion},
-	"pushd":   {Default: NoOpinion},
-	"popd":    {Default: NoOpinion},
-	"env":     {Default: NoOpinion},
-
 	// ── Nested subcommands ──────────────────────────────────
 	"git": {
 		DenyFlags: []string{"-C", "--work-tree", "--git-dir"},
@@ -153,27 +108,6 @@ var Default = map[string]*Rule{
 			"version":       {Default: Allow},
 			"range-diff":    {Default: Allow},
 			"var":           {Default: Allow},
-			"commit":        {Default: NoOpinion},
-			"push":          {Default: NoOpinion},
-			"pull":          {Default: NoOpinion},
-			"merge":         {Default: NoOpinion},
-			"rebase":        {Default: NoOpinion},
-			"reset":         {Default: NoOpinion},
-			"checkout":      {Default: NoOpinion},
-			"switch":        {Default: NoOpinion},
-			"clone":         {Default: NoOpinion},
-			"init":          {Default: NoOpinion},
-			"add":           {Default: NoOpinion},
-			"clean":         {Default: NoOpinion},
-			"apply":         {Default: NoOpinion},
-			"am":            {Default: NoOpinion},
-			"bisect":        {Default: NoOpinion},
-			"cherry-pick":   {Default: NoOpinion},
-			"fetch":         {Default: NoOpinion},
-			"mv":            {Default: NoOpinion},
-			"rm":            {Default: NoOpinion},
-			"restore":       {Default: NoOpinion},
-			"revert":        {Default: NoOpinion},
 			"remote": {
 				Subcommands: map[string]*Rule{
 					"-v":        {Default: Allow},
@@ -181,13 +115,6 @@ var Default = map[string]*Rule{
 					"show":      {Default: Allow},
 					"list":      {Default: Allow},
 					"get-url":   {Default: Allow},
-					"add":       {Default: NoOpinion},
-					"remove":    {Default: NoOpinion},
-					"rm":        {Default: NoOpinion},
-					"rename":    {Default: NoOpinion},
-					"set-url":   {Default: NoOpinion},
-					"set-head":  {Default: NoOpinion},
-					"prune":     {Default: NoOpinion},
 				},
 			},
 			"branch": {
@@ -218,40 +145,19 @@ var Default = map[string]*Rule{
 			},
 			"stash": {
 				Subcommands: map[string]*Rule{
-					"list":   {Default: Allow},
-					"show":   {Default: Allow},
-					"push":   {Default: NoOpinion},
-					"pop":    {Default: NoOpinion},
-					"apply":  {Default: NoOpinion},
-					"drop":   {Default: NoOpinion},
-					"clear":  {Default: NoOpinion},
-					"branch": {Default: NoOpinion},
-					"create": {Default: NoOpinion},
+					"list": {Default: Allow},
+					"show": {Default: Allow},
 				},
 			},
 			"submodule": {
 				Subcommands: map[string]*Rule{
-					"status":        {Default: Allow},
-					"summary":       {Default: Allow},
-					"add":           {Default: NoOpinion},
-					"init":          {Default: NoOpinion},
-					"deinit":        {Default: NoOpinion},
-					"update":        {Default: NoOpinion},
-					"sync":          {Default: NoOpinion},
-					"foreach":       {Default: NoOpinion},
-					"absorbgitdirs": {Default: NoOpinion},
+					"status":  {Default: Allow},
+					"summary": {Default: Allow},
 				},
 			},
 			"worktree": {
 				Subcommands: map[string]*Rule{
-					"list":   {Default: Allow},
-					"add":    {Default: NoOpinion},
-					"remove": {Default: NoOpinion},
-					"prune":  {Default: NoOpinion},
-					"repair": {Default: NoOpinion},
-					"move":   {Default: NoOpinion},
-					"lock":   {Default: NoOpinion},
-					"unlock": {Default: NoOpinion},
+					"list": {Default: Allow},
 				},
 			},
 			"config": {
@@ -282,20 +188,12 @@ var Default = map[string]*Rule{
 					"./...": {Default: Allow},
 				},
 			},
-			"run":      {Default: NoOpinion},
-			"install":  {Default: NoOpinion},
-			"get":      {Default: NoOpinion},
-			"generate": {Default: NoOpinion},
 			"mod": {
 				Subcommands: map[string]*Rule{
 					"download": {Default: Allow},
 					"verify":   {Default: Allow},
 					"graph":    {Default: Allow},
 					"why":      {Default: Allow},
-					"tidy":     {Default: NoOpinion},
-					"edit":     {Default: NoOpinion},
-					"init":     {Default: NoOpinion},
-					"vendor":   {Default: NoOpinion},
 				},
 			},
 			"tool": {
@@ -304,7 +202,6 @@ var Default = map[string]*Rule{
 					"cover": {Default: Allow},
 					"pprof": {Default: Allow},
 					"trace": {Default: Allow},
-					"dist":  {Default: NoOpinion},
 				},
 			},
 		},
@@ -323,30 +220,12 @@ var Default = map[string]*Rule{
 			"metadata":       {Default: Allow},
 			"search":         {Default: Allow},
 			"info":           {Default: Allow},
-			"build":          {Default: NoOpinion},
-			"run":            {Default: NoOpinion},
-			"install":        {Default: NoOpinion},
-			"add":            {Default: NoOpinion},
-			"remove":         {Default: NoOpinion},
-			"rm":             {Default: NoOpinion},
-			"publish":        {Default: NoOpinion},
-			"init":           {Default: NoOpinion},
-			"new":            {Default: NoOpinion},
-			"clean":          {Default: NoOpinion},
-			"update":         {Default: NoOpinion},
-			"fetch":          {Default: NoOpinion},
-			"generate":       {Default: NoOpinion},
-			"login":          {Default: NoOpinion},
-			"logout":         {Default: NoOpinion},
-			"owner":          {Default: NoOpinion},
-			"yank":           {Default: NoOpinion},
 		},
 	},
 
 	"gh": {
 		Subcommands: map[string]*Rule{
 			"version": {Default: Allow},
-			"api":     {Default: NoOpinion},
 			"pr": {
 				Subcommands: map[string]*Rule{
 					"list":   {Default: Allow},
@@ -354,47 +233,23 @@ var Default = map[string]*Rule{
 					"status": {Default: Allow},
 					"checks": {Default: Allow},
 					"diff":   {Default: Allow},
-					"create": {Default: NoOpinion},
-					"edit":   {Default: NoOpinion},
-					"merge":  {Default: NoOpinion},
-					"close":  {Default: NoOpinion},
-					"reopen": {Default: NoOpinion},
-					"ready":  {Default: NoOpinion},
-					"review": {Default: NoOpinion},
 				},
 			},
 			"issue": {
 				Subcommands: map[string]*Rule{
-					"list":     {Default: Allow},
-					"view":     {Default: Allow},
-					"status":   {Default: Allow},
-					"search":   {Default: Allow},
-					"create":   {Default: NoOpinion},
-					"edit":     {Default: NoOpinion},
-					"close":    {Default: NoOpinion},
-					"reopen":   {Default: NoOpinion},
-					"delete":   {Default: NoOpinion},
-					"transfer": {Default: NoOpinion},
-					"pin":      {Default: NoOpinion},
-					"unpin":    {Default: NoOpinion},
-					"develop":  {Default: NoOpinion},
+					"list":   {Default: Allow},
+					"view":   {Default: Allow},
+					"status": {Default: Allow},
+					"search": {Default: Allow},
 				},
 			},
 			"repo": {
 				Subcommands: map[string]*Rule{
-					"list":      {Default: Allow},
-					"view":      {Default: Allow},
-					"clone":     {Default: Allow},
-					"fork":      {Default: Allow},
-					"search":    {Default: Allow},
-					"create":    {Default: NoOpinion},
-					"delete":    {Default: NoOpinion},
-					"edit":      {Default: NoOpinion},
-					"rename":    {Default: NoOpinion},
-					"sync":      {Default: NoOpinion},
-					"archive":   {Default: NoOpinion},
-					"unarchive": {Default: NoOpinion},
-					"transfer":  {Default: NoOpinion},
+					"list":   {Default: Allow},
+					"view":   {Default: Allow},
+					"clone":  {Default: Allow},
+					"fork":   {Default: Allow},
+					"search": {Default: Allow},
 				},
 			},
 			"release": {
@@ -402,21 +257,12 @@ var Default = map[string]*Rule{
 					"list":     {Default: Allow},
 					"view":     {Default: Allow},
 					"download": {Default: Allow},
-					"create":   {Default: NoOpinion},
-					"edit":     {Default: NoOpinion},
-					"delete":   {Default: NoOpinion},
-					"upload":   {Default: NoOpinion},
 				},
 			},
 			"workflow": {
 				Subcommands: map[string]*Rule{
-					"list":    {Default: Allow},
-					"view":    {Default: Allow},
-					"run":     {Default: NoOpinion},
-					"rerun":   {Default: NoOpinion},
-					"cancel":  {Default: NoOpinion},
-					"disable": {Default: NoOpinion},
-					"enable":  {Default: NoOpinion},
+					"list": {Default: Allow},
+					"view": {Default: Allow},
 				},
 			},
 			"run": {
@@ -425,33 +271,21 @@ var Default = map[string]*Rule{
 					"view":     {Default: Allow},
 					"watch":    {Default: Allow},
 					"download": {Default: Allow},
-					"rerun":    {Default: NoOpinion},
-					"cancel":   {Default: NoOpinion},
-					"delete":   {Default: NoOpinion},
 				},
 			},
 			"auth": {
 				Subcommands: map[string]*Rule{
-					"status":    {Default: Allow},
-					"login":     {Default: NoOpinion},
-					"logout":    {Default: NoOpinion},
-					"token":     {Default: NoOpinion},
-					"setup-git": {Default: NoOpinion},
-					"refresh":   {Default: NoOpinion},
+					"status": {Default: Allow},
 				},
 			},
 			"gpg-key": {
 				Subcommands: map[string]*Rule{
-					"list":   {Default: Allow},
-					"add":    {Default: NoOpinion},
-					"delete": {Default: NoOpinion},
+					"list": {Default: Allow},
 				},
 			},
 			"ssh-key": {
 				Subcommands: map[string]*Rule{
-					"list":   {Default: Allow},
-					"add":    {Default: NoOpinion},
-					"delete": {Default: NoOpinion},
+					"list": {Default: Allow},
 				},
 			},
 		},
@@ -482,19 +316,6 @@ var Default = map[string]*Rule{
 					"history": {Default: Allow},
 				},
 			},
-			"apply":        {Default: NoOpinion},
-			"create":       {Default: NoOpinion},
-			"delete":       {Default: NoOpinion},
-			"edit":         {Default: NoOpinion},
-			"patch":        {Default: NoOpinion},
-			"replace":      {Default: NoOpinion},
-			"scale":        {Default: NoOpinion},
-			"exec":         {Default: NoOpinion},
-			"cp":           {Default: NoOpinion},
-			"port-forward": {Default: NoOpinion},
-			"proxy":        {Default: NoOpinion},
-			"attach":       {Default: NoOpinion},
-			"config":       {Default: NoOpinion},
 		},
 	},
 
@@ -515,35 +336,14 @@ var Default = map[string]*Rule{
 				Subcommands: map[string]*Rule{
 					"ls":      {Default: Allow},
 					"inspect": {Default: Allow},
-					"create":  {Default: NoOpinion},
-					"rm":      {Default: NoOpinion},
-					"prune":   {Default: NoOpinion},
 				},
 			},
 			"network": {
 				Subcommands: map[string]*Rule{
-					"ls":         {Default: Allow},
-					"inspect":    {Default: Allow},
-					"create":     {Default: NoOpinion},
-					"rm":         {Default: NoOpinion},
-					"prune":      {Default: NoOpinion},
-					"connect":    {Default: NoOpinion},
-					"disconnect": {Default: NoOpinion},
+					"ls":      {Default: Allow},
+					"inspect": {Default: Allow},
 				},
 			},
-			"build":   {Default: NoOpinion},
-			"run":     {Default: NoOpinion},
-			"pull":    {Default: NoOpinion},
-			"push":    {Default: NoOpinion},
-			"rm":      {Default: NoOpinion},
-			"rmi":     {Default: NoOpinion},
-			"stop":    {Default: NoOpinion},
-			"start":   {Default: NoOpinion},
-			"restart": {Default: NoOpinion},
-			"kill":    {Default: NoOpinion},
-			"exec":    {Default: NoOpinion},
-			"cp":      {Default: NoOpinion},
-			"create":  {Default: NoOpinion},
 			"compose": {
 				Default: NoOpinion,
 				Subcommands: map[string]*Rule{
@@ -551,15 +351,260 @@ var Default = map[string]*Rule{
 					"logs": {Default: Allow},
 				},
 			},
-			"login":   {Default: NoOpinion},
-			"logout":  {Default: NoOpinion},
-			"tag":     {Default: NoOpinion},
-			"commit":  {Default: NoOpinion},
-			"save":    {Default: NoOpinion},
-			"load":    {Default: NoOpinion},
-			"system":  {Default: NoOpinion},
-			"swarm":   {Default: NoOpinion},
-			"service": {Default: NoOpinion},
+		},
+	},
+
+	"podman": {
+		Subcommands: map[string]*Rule{
+			"version": {Default: Allow},
+			"info":    {Default: Allow},
+			"images":  {Default: Allow},
+			"ps":      {Default: Allow},
+			"inspect": {Default: Allow},
+			"logs":    {Default: Allow},
+			"stats":   {Default: Allow},
+			"top":     {Default: Allow},
+			"port":    {Default: Allow},
+			"history": {Default: Allow},
+			"search":  {Default: Allow},
+			"volume": {
+				Subcommands: map[string]*Rule{
+					"ls":      {Default: Allow},
+					"inspect": {Default: Allow},
+				},
+			},
+			"network": {
+				Subcommands: map[string]*Rule{
+					"ls":      {Default: Allow},
+					"inspect": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	// ── JavaScript / TypeScript package managers ────────────
+	"bun": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"test":      {Default: Allow},
+			"check":     {Default: Allow},
+		},
+	},
+
+	"pnpm": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"list":      {Default: Allow},
+			"ls":        {Default: Allow},
+			"why":       {Default: Allow},
+			"outdated":  {Default: Allow},
+			"audit":     {Default: Allow},
+			"info":      {Default: Allow},
+		},
+	},
+
+	"yarn": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"info":      {Default: Allow},
+			"list":      {Default: Allow},
+			"why":       {Default: Allow},
+			"outdated":  {Default: Allow},
+			"dir":       {Default: Allow},
+			"bin":       {Default: Allow},
+			"npm": {
+				Subcommands: map[string]*Rule{
+					"info": {Default: Allow},
+				},
+			},
+			"constraints": {
+				Subcommands: map[string]*Rule{
+					"query": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	// ── Python package managers ─────────────────────────────
+	"pip": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"list":      {Default: Allow},
+			"show":      {Default: Allow},
+			"search":    {Default: Allow},
+			"check":     {Default: Allow},
+			"freeze":    {Default: Allow},
+			"deptree":   {Default: Allow},
+			"index": {
+				Subcommands: map[string]*Rule{
+					"versions": {Default: Allow},
+				},
+			},
+			"hash": {Default: Allow},
+		},
+	},
+
+	"pip3": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"list":      {Default: Allow},
+			"show":      {Default: Allow},
+			"search":    {Default: Allow},
+			"check":     {Default: Allow},
+			"freeze":    {Default: Allow},
+			"deptree":   {Default: Allow},
+			"index": {
+				Subcommands: map[string]*Rule{
+					"versions": {Default: Allow},
+				},
+			},
+			"hash": {Default: Allow},
+		},
+	},
+
+	"pipx": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"list":      {Default: Allow},
+		},
+	},
+
+	"uv": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"pip": {
+				Subcommands: map[string]*Rule{
+					"list":    {Default: Allow},
+					"show":    {Default: Allow},
+					"check":   {Default: Allow},
+					"freeze":  {Default: Allow},
+					"deptree": {Default: Allow},
+				},
+			},
+			"tool": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+				},
+			},
+			"python": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"find": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	"poetry": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"show":      {Default: Allow},
+			"search":    {Default: Allow},
+			"check":     {Default: Allow},
+			"env": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"info": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	// ── Nix ─────────────────────────────────────────────────
+	"nix": {
+		Subcommands: map[string]*Rule{
+			"--version": {Default: Allow},
+			"eval":      {Default: Allow},
+			"search":    {Default: Allow},
+			"hash":      {Default: Allow},
+			"path-info": {Default: Allow},
+			"flake": {
+				Subcommands: map[string]*Rule{
+					"metadata": {Default: Allow},
+					"check":    {Default: Allow},
+					"show":     {Default: Allow},
+					"list":     {Default: Allow},
+				},
+			},
+			"store": {
+				Subcommands: map[string]*Rule{
+					"ls":            {Default: Allow},
+					"cat":           {Default: Allow},
+					"diff-closures": {Default: Allow},
+					"ping":          {Default: Allow},
+					"verify":        {Default: Allow},
+				},
+			},
+			"why-depends": {Default: Allow},
+		},
+	},
+
+	// ── Infrastructure as code ──────────────────────────────
+	"terraform": {
+		Subcommands: map[string]*Rule{
+			"version":   {Default: Allow},
+			"validate":  {Default: Allow},
+			"plan":      {Default: Allow},
+			"show":      {Default: Allow},
+			"output":    {Default: Allow},
+			"graph":     {Default: Allow},
+			"providers": {Default: Allow},
+			"workspace": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"show": {Default: Allow},
+				},
+			},
+			"state": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"show": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	"tofu": {
+		Subcommands: map[string]*Rule{
+			"version":   {Default: Allow},
+			"validate":  {Default: Allow},
+			"plan":      {Default: Allow},
+			"show":      {Default: Allow},
+			"output":    {Default: Allow},
+			"graph":     {Default: Allow},
+			"providers": {Default: Allow},
+			"workspace": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"show": {Default: Allow},
+				},
+			},
+			"state": {
+				Subcommands: map[string]*Rule{
+					"list": {Default: Allow},
+					"show": {Default: Allow},
+				},
+			},
+		},
+	},
+
+	"helm": {
+		Subcommands: map[string]*Rule{
+			"version": {Default: Allow},
+			"list":    {Default: Allow},
+			"status":  {Default: Allow},
+			"get":     {Default: Allow},
+			"search":  {Default: Allow},
+			"show":    {Default: Allow},
+			"history": {Default: Allow},
+			"env":     {Default: Allow},
+			"repo": {
+				Subcommands: map[string]*Rule{
+					"list":   {Default: Allow},
+					"search": {Default: Allow},
+				},
+			},
+			"template": {Default: Allow},
 		},
 	},
 }

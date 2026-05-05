@@ -30,23 +30,33 @@
         };
 
         checks = {
-          e2e-crush = pkgs.runCommand "crushout-e2e-crush" {
-          nativeBuildInputs = [ pkgs.jq ];
-        } ''
-          export HOME=/tmp
-          mkdir -p /tmp/crushout-root
-          bash ${./tests/e2e/run.sh} ${self.packages.${system}.crushout}/bin/crushout ${./tests/e2e/cases_crush.jsonl}
-          touch $out
-        '';
+          e2e-crush =
+            pkgs.runCommand "crushout-e2e-crush"
+              {
+                nativeBuildInputs = [ pkgs.jq ];
+              }
+              ''
+                export HOME=/tmp
+                mkdir -p /tmp/crushout-root
+                bash ${./tests/e2e/run.sh} ${
+                  self.packages.${system}.crushout
+                }/bin/crushout ${./tests/e2e/cases_crush.jsonl}
+                touch $out
+              '';
 
-          e2e-claude = pkgs.runCommand "crushout-e2e-claude" {
-          nativeBuildInputs = [ pkgs.jq ];
-        } ''
-          export HOME=/tmp
-          mkdir -p /tmp/crushout-root
-          bash ${./tests/e2e/run.sh} ${self.packages.${system}.crushout}/bin/crushout ${./tests/e2e/cases_claude.jsonl}
-          touch $out
-        '';
+          e2e-claude =
+            pkgs.runCommand "crushout-e2e-claude"
+              {
+                nativeBuildInputs = [ pkgs.jq ];
+              }
+              ''
+                export HOME=/tmp
+                mkdir -p /tmp/crushout-root
+                bash ${./tests/e2e/run.sh} ${
+                  self.packages.${system}.crushout
+                }/bin/crushout ${./tests/e2e/cases_claude.jsonl}
+                touch $out
+              '';
         };
 
         apps.gomod2nix = {
