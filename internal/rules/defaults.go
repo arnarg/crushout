@@ -262,8 +262,14 @@ var Default = map[string]*Rule{
 				},
 			},
 			"config": {
-				Default:   true,
+				Default:   false,
 				DenyFlags: []string{"--global", "--system", "--file"},
+				Subcommands: map[string]*Rule{
+					"list":   {Default: true},
+					"get":    {Default: true},
+					"--list": {Default: true},
+					"--get":  {Default: true},
+				},
 			},
 		},
 	},

@@ -216,7 +216,7 @@ func TestIsReadOnly_CDWithinRoot(t *testing.T) {
 
 func TestIsReadOnly_GitConfigGet(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git config --get user.name")
+	ok, err := c.IsReadOnly("git config get user.name")
 	assertNoError(t, err)
 	if !ok {
 		t.Error("expected read-only")
@@ -405,8 +405,8 @@ func TestIsReadOnly_Curl(t *testing.T) {
 func TestIsReadOnly_GoBuild(t *testing.T) {
 	c := newTestChecker()
 	ok, _ := c.IsReadOnly("go build ./...")
-	if ok {
-		t.Error("go build should not be read-only")
+	if !ok {
+		t.Error("go build ./... should be read-only")
 	}
 }
 

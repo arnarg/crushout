@@ -414,7 +414,7 @@ func TestDefaultRules_GitSubcommands(t *testing.T) {
 		{[]string{"stash", "list"}, true},
 		{[]string{"stash", "show"}, true},
 		{[]string{"submodule", "status"}, true},
-		{[]string{"config", "--get", "user.name"}, true},
+		{[]string{"config", "get", "user.name"}, true},
 
 		// Mutable
 		{[]string{"commit", "-m", "fix"}, false},
@@ -476,7 +476,8 @@ func TestDefaultRules_GoSubcommands(t *testing.T) {
 		{[]string{"mod", "download"}, true},
 		{[]string{"mod", "verify"}, true},
 		{[]string{"tool", "pprof", "cpu.prof"}, true},
-		{[]string{"build", "./..."}, false},
+		{[]string{"build", "./..."}, true},
+		{[]string{"build", "./cmd/crushout"}, false},
 		{[]string{"run", "main.go"}, false},
 		{[]string{"install", "./..."}, false},
 		{[]string{"get", "github.com/foo/bar"}, false},

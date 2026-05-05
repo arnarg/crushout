@@ -82,7 +82,7 @@ Or use a full path:
 | `git branch --show-current` | ✅ auto | nested: `branch` → `--show-current` |
 | `git tag -l` | ✅ auto | nested: `tag` → `-l` |
 | `git stash list` | ✅ auto | nested: `stash` → `list` |
-| `git config --get user.name` | ✅ auto | `config` without `--global`/`--system` |
+| `git config get user.name` | ✅ auto | `config` with `list`/`get` |
 | `find . -name '*.go'` | ✅ auto | `find` without `-exec`/`-delete` |
 | `sed 's/old/new/g' file` | ✅ auto | `sed` without `-i` |
 | `go test ./...` | ✅ auto | read-only subcommand |
