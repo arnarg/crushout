@@ -1,6 +1,8 @@
 # crushout
 
-A [Crush](https://github.com/charmbracelet/crush) hook that auto-approves read-only bash commands and can hard-block dangerous ones via config.
+A PreToolUse hook for the Bash tool that auto-approves read-only commands and can hard-block dangerous ones via config. Works with [Crush](https://github.com/charmbracelet/crush) and [Claude Code](https://code.claude.com/docs/en/hooks).
+
+> **Note:** I use crushout with Crush. The Claude Code protocol is implemented based on their docs but I haven't personally verified it end-to-end. Bug reports welcome.
 
 When an agent runs `git status`, `ls -la`, or `cat file.txt`, crushout skips the permission prompt. When it runs `rm -rf /`, `git push`, or anything it can't confidently classify, crushout stays silent and the normal permission flow takes over. With a `.crushout.yml` config, you can also hard-deny specific commands so they're blocked outright.
 
@@ -43,7 +45,9 @@ Move the binary somewhere on your `$PATH`, or use a full path in the config.
 
 ## Configure
 
-Add to your project's `crush.json`:
+### Crush
+
+Add to your project's `.crush.json`:
 
 ```json
 {
@@ -59,7 +63,29 @@ Add to your project's `crush.json`:
 }
 ```
 
-Or use a full path:
+### Claude Code
+
+Add to your project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "crushout"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Or use a full path in either:
 
 ```json
 "command": "/usr/local/bin/crushout"
@@ -131,7 +157,7 @@ Or use a full path:
 crushout/
 ├── cmd/crushout/main.go          # entry point, crush protocol I/O
 ├── internal/
-│   ├── hook/protocol.go          # HookInput, HookOutput types
+│   ├── hook/protocol.go          # Hook interface, Crush/Claude Code protocol types
 │   ├── bash/parse.go             # tree-sitter parsing and AST traversal
 │   ├── rules/rule.go             # recursive Rule type and resolution
 │   ├── rules/defaults.go         # built-in rule definitions
@@ -171,7 +197,7 @@ Resolution walks arguments left-to-right:
 
 ## Custom config file
 
-Instead of editing the source, you can drop `.crushout.yml` or `.crushout.yaml` in your project root. crushout looks for it in the `cwd` passed by Crush (typically the repo root).
+Instead of editing the source, you can drop `.crushout.yml` or `.crushout.yaml` in your project root. crushout looks for it in the `cwd` passed by the hook (typically the repo root).
 
 ### YAML format
 
@@ -272,7 +298,9 @@ rules:
 
 ## Hook protocol
 
-crushout implements the [Crush PreToolUse hook protocol](https://github.com/charmbracelet/crush/blob/main/docs/hooks/README.md). It reads JSON on stdin and writes JSON on stdout.
+crushout implements the [Crush PreToolUse hook protocol](https://github.com/charmbracelet/crush/blob/main/docs/hooks/README.md) and the [Claude Code PreToolUse hook protocol](https://code.claude.com/docs/en/hooks). It reads JSON on stdin, detects which format is being used based on the field names, and writes the correct output format on stdout.
+
+### Crush
 
 Input:
 
@@ -304,9 +332,42 @@ Output (hard-deny):
 {"version": 1, "decision": "deny", "reason": "crushout: no curl allowed (rule for 'curl')"}
 ```
 
+### Claude Code
+
+Input:
+
+```json
+{
+  "session_id": "abc123",
+  "transcript_path": "/home/user/.claude/projects/.../transcript.jsonl",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": { "command": "git status" }
+}
+```
+
+Output (auto-approve):
+
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}
+```
+
+Output (ask user, let the normal permission prompt handle it):
+
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask"}}
+```
+
+Output (hard-deny):
+
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "crushout: no curl allowed (rule for 'curl')"}}
+```
+
 ## About deny
 
-By default, crushout only has two outcomes: **allow** (auto-approve) and **no opinion** (fall through to Crush's normal permission prompt). The built-in rules never deny, they either fast-track safe commands or get out of the way.
+By default, crushout only has two outcomes: **allow** (auto-approve) and **no opinion** (fall through to the normal permission prompt). The built-in rules never deny, they either fast-track safe commands or get out of the way.
 
 Through `.crushout.yml`, you can add explicit **deny** rules. A deny is final, the model sees the error and tries something else. This is useful when you want to block a command the defaults would otherwise allow (or just prompt for):
 

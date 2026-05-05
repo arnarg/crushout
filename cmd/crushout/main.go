@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -12,22 +11,21 @@ import (
 )
 
 func main() {
-	// Read hook input from stdin
-	var input hook.Input
-	if err := json.NewDecoder(os.Stdin).Decode(&input); err != nil {
+	input, err := hook.Decode(os.Stdin)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "crushout: %v\n", err)
 		os.Exit(1)
 	}
 
-	// If tool is not bash or command is empty we just skip it
-	if input.ToolName != "bash" || input.ToolInput.Command == "" {
+	// If tool is not bash we just skip it
+	if !hook.IsBashTool(input) {
 		fmt.Println("{}")
 		return
 	}
 
 	// We want to extract the CWD so we can only auto-allow
 	// whitelisted commands that also stay within the CWD (track cd)
-	rootDir := input.CWD
+	rootDir := input.CWD()
 	if rootDir == "" {
 		rootDir, _ = os.Getwd()
 	}
@@ -37,7 +35,7 @@ func main() {
 	ruleSet := rules.Default
 	cfg, err := config.Load(rootDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "crushout: %v\n", err)
+		fmt.Fprintf(os.Stderr, "could not parse user config: %v\n", err)
 	} else if cfg != nil {
 		ruleSet = config.ToRulesWithDefaults(cfg)
 	}
@@ -48,19 +46,17 @@ func main() {
 		Rules:   ruleSet,
 	}
 
-	switch d, reason, _ := c.Check(input.ToolInput.Command); d {
-	case rules.Allow:
-		json.NewEncoder(os.Stdout).Encode(hook.Output{
-			Version:  1,
-			Decision: "allow",
-		})
-	case rules.Deny:
-		json.NewEncoder(os.Stdout).Encode(hook.Output{
-			Version:  1,
-			Decision: "deny",
-			Reason:   reason,
-		})
-	default:
-		fmt.Println("{}")
+	d, reason, err := c.Check(input.Command())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not check command: %v\n", err)
+		os.Exit(1)
 	}
+
+	out, err := input.FormatDecision(d, reason)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "could not serialize output: %v\n", err)
+		os.Exit(1)
+	}
+
+	os.Stdout.Write(out)
 }
