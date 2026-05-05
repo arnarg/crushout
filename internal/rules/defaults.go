@@ -346,7 +346,7 @@ var Default = map[string]*Rule{
 	"gh": {
 		Subcommands: map[string]*Rule{
 			"version": {Default: Allow},
-			"api":     {Default: Allow},
+			"api":     {Default: NoOpinion},
 			"pr": {
 				Subcommands: map[string]*Rule{
 					"list":   {Default: Allow},

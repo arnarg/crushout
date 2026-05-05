@@ -585,7 +585,7 @@ func TestDefaultRules_GhSubcommands(t *testing.T) {
 		allowed bool
 	}{
 		{[]string{"version"}, true},
-		{[]string{"api", "/repos/owner/repo"}, true},
+		{[]string{"api", "/repos/owner/repo"}, false},
 		{[]string{"pr", "list"}, true},
 		{[]string{"pr", "view", "123"}, true},
 		{[]string{"pr", "status"}, true},
