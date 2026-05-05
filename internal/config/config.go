@@ -17,9 +17,44 @@ type Config struct {
 
 // RuleConfig is a rule as specified in YAML.
 type RuleConfig struct {
-	Default     *bool                  `yaml:"default"`
-	DenyFlags   []string               `yaml:"deny_flags"`
+	Decision   *Decision              `yaml:"decision"`
+	DenyFlags  []string               `yaml:"deny_flags"`
+	Message    string                 `yaml:"message"`
 	Subcommands map[string]*RuleConfig `yaml:"subcommands"`
+}
+
+// Decision is a YAML-friendly wrapper around rules.Decision.
+type Decision rules.Decision
+
+func (d *Decision) UnmarshalYAML(value *yaml.Node) error {
+	parsed, err := rules.ParseDecision(value.Value)
+	if err != nil {
+		return err
+	}
+	*d = Decision(parsed)
+	return nil
+}
+
+// UnmarshalYAML implements custom YAML unmarshalling for RuleConfig.
+// Supports both shorthand (string like "allow") and full mapping form.
+func (rc *RuleConfig) UnmarshalYAML(value *yaml.Node) error {
+	switch value.Kind {
+	case yaml.ScalarNode:
+		d, err := rules.ParseDecision(value.Value)
+		if err != nil {
+			return fmt.Errorf("invalid rule: %w", err)
+		}
+		conv := Decision(d)
+		rc.Decision = &conv
+		return nil
+
+	case yaml.MappingNode:
+		type plain RuleConfig
+		return value.Decode((*plain)(rc))
+
+	default:
+		return fmt.Errorf("rule must be a string or mapping, got %s", value.Tag)
+	}
 }
 
 // Load reads .crushout.yml or .crushout.yaml from dir.
@@ -87,11 +122,12 @@ func Merge(baseRules, userRules map[string]*rules.Rule) map[string]*rules.Rule {
 // toRule converts a RuleConfig to the runtime Rule type.
 func (rc *RuleConfig) toRule() *rules.Rule {
 	r := &rules.Rule{}
-	if rc.Default != nil {
-		r.Default = *rc.Default
+	if rc.Decision != nil {
+		r.Default = rules.Decision(*rc.Decision)
 		r.DefaultExplicit = true
 	}
 	r.DenyFlags = rc.DenyFlags
+	r.Message = rc.Message
 	if len(rc.Subcommands) > 0 {
 		r.Subcommands = make(map[string]*rules.Rule, len(rc.Subcommands))
 		for name, sub := range rc.Subcommands {
@@ -102,22 +138,25 @@ func (rc *RuleConfig) toRule() *rules.Rule {
 }
 
 // mergeRule merges userRule into baseRule.
-// User values win: Default (if explicitly set), DenyFlags, and Subcommands are merged recursively.
+// User values win: Default (if explicitly set), DenyFlags, Message, and Subcommands are merged recursively.
 func mergeRule(base, user *rules.Rule) *rules.Rule {
 	result := &rules.Rule{
 		Default:   base.Default,
 		DenyFlags: base.DenyFlags,
+		Message:   base.Message,
 	}
 	if base.Subcommands != nil {
 		result.Subcommands = deepCopyRules(base.Subcommands)
 	}
 
-	// Only override Default if user explicitly set it (DefaultExplicit=true)
 	if user.DefaultExplicit {
 		result.Default = user.Default
 	}
 	if len(user.DenyFlags) > 0 {
 		result.DenyFlags = user.DenyFlags
+	}
+	if user.Message != "" {
+		result.Message = user.Message
 	}
 
 	if len(user.Subcommands) > 0 {
@@ -157,6 +196,7 @@ func deepCopyRule(src *rules.Rule) *rules.Rule {
 		Default:         src.Default,
 		DefaultExplicit: src.DefaultExplicit,
 		DenyFlags:       append([]string(nil), src.DenyFlags...),
+		Message:         src.Message,
 	}
 	if len(src.Subcommands) > 0 {
 		dst.Subcommands = deepCopyRules(src.Subcommands)

@@ -48,12 +48,19 @@ func main() {
 		Rules:   ruleSet,
 	}
 
-	if ok, _ := c.IsReadOnly(input.ToolInput.Command); ok {
+	switch d, reason, _ := c.Check(input.ToolInput.Command); d {
+	case rules.Allow:
 		json.NewEncoder(os.Stdout).Encode(hook.Output{
 			Version:  1,
 			Decision: "allow",
 		})
-	} else {
+	case rules.Deny:
+		json.NewEncoder(os.Stdout).Encode(hook.Output{
+			Version:  1,
+			Decision: "deny",
+			Reason:   reason,
+		})
+	default:
 		fmt.Println("{}")
 	}
 }

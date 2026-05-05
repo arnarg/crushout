@@ -14,445 +14,445 @@ func newTestChecker() *Checker {
 	}
 }
 
-// ── Success cases: IsReadOnly returns true ─────────────────
+// ── Success cases: Check returns Allow ────────────────────
 
-func TestIsReadOnly_SimpleLs(t *testing.T) {
+func TestCheck_SimpleLs(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("ls -la")
+	d, _, err := c.Check("ls -la")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitStatus(t *testing.T) {
+func TestCheck_GitStatus(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git status")
+	d, _, err := c.Check("git status")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitDiff(t *testing.T) {
+func TestCheck_GitDiff(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git diff HEAD~3")
+	d, _, err := c.Check("git diff HEAD~3")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitLog(t *testing.T) {
+func TestCheck_GitLog(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git log --oneline -10")
+	d, _, err := c.Check("git log --oneline -10")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitRemoteV(t *testing.T) {
+func TestCheck_GitRemoteV(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git remote -v")
+	d, _, err := c.Check("git remote -v")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitRemoteShow(t *testing.T) {
+func TestCheck_GitRemoteShow(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git remote show origin")
+	d, _, err := c.Check("git remote show origin")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitBranchList(t *testing.T) {
+func TestCheck_GitBranchList(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git branch -l")
+	d, _, err := c.Check("git branch -l")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitBranchShowCurrent(t *testing.T) {
+func TestCheck_GitBranchShowCurrent(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git branch --show-current")
+	d, _, err := c.Check("git branch --show-current")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitTagList(t *testing.T) {
+func TestCheck_GitTagList(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git tag -l")
+	d, _, err := c.Check("git tag -l")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitStashList(t *testing.T) {
+func TestCheck_GitStashList(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git stash list")
+	d, _, err := c.Check("git stash list")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitSubmoduleStatus(t *testing.T) {
+func TestCheck_GitSubmoduleStatus(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git submodule status")
+	d, _, err := c.Check("git submodule status")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_Pipeline(t *testing.T) {
+func TestCheck_Pipeline(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("cat README.md | grep -i todo | sort | uniq")
+	d, _, err := c.Check("cat README.md | grep -i todo | sort | uniq")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_CompoundList(t *testing.T) {
+func TestCheck_CompoundList(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git status && git diff && ls -la")
+	d, _, err := c.Check("git status && git diff && ls -la")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_Find(t *testing.T) {
+func TestCheck_Find(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("find . -name '*.go'")
+	d, _, err := c.Check("find . -name '*.go'")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_Sed(t *testing.T) {
+func TestCheck_Sed(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("sed 's/old/new/g' file.txt")
+	d, _, err := c.Check("sed 's/old/new/g' file.txt")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GoTest(t *testing.T) {
+func TestCheck_GoTest(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go test ./...")
+	d, _, err := c.Check("go test ./...")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GoModGraph(t *testing.T) {
+func TestCheck_GoModGraph(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go mod graph")
+	d, _, err := c.Check("go mod graph")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GoEnv(t *testing.T) {
+func TestCheck_GoEnv(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go env GOPATH")
+	d, _, err := c.Check("go env GOPATH")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GoToolPprof(t *testing.T) {
+func TestCheck_GoToolPprof(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go tool pprof cpu.prof")
+	d, _, err := c.Check("go tool pprof cpu.prof")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_PwdWhoamiUname(t *testing.T) {
+func TestCheck_PwdWhoamiUname(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("pwd && whoami && uname -a")
+	d, _, err := c.Check("pwd && whoami && uname -a")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_Echo(t *testing.T) {
+func TestCheck_Echo(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("echo hello")
+	d, _, err := c.Check("echo hello")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_CDWithinRoot(t *testing.T) {
+func TestCheck_CDWithinRoot(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("cd src && ls -la && cd ..")
+	d, _, err := c.Check("cd src && ls -la && cd ..")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-func TestIsReadOnly_GitConfigGet(t *testing.T) {
+func TestCheck_GitConfigGet(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("git config get user.name")
+	d, _, err := c.Check("git config get user.name")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("expected read-only")
+	if d != rules.Allow {
+		t.Error("expected allow")
 	}
 }
 
-// ── Failure cases: IsReadOnly returns false ────────────────
+// ── Failure cases: Check returns NoOpinion ────────────────
 
-func TestIsReadOnly_Rm(t *testing.T) {
+func TestCheck_Rm(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("rm -rf /")
-	if ok {
-		t.Error("rm should not be read-only")
+	d, _, _ := c.Check("rm -rf /")
+	if d != rules.NoOpinion {
+		t.Error("rm should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_SudoRm(t *testing.T) {
+func TestCheck_SudoRm(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("sudo rm -rf /")
-	if ok {
-		t.Error("sudo should not be read-only")
+	d, _, _ := c.Check("sudo rm -rf /")
+	if d != rules.NoOpinion {
+		t.Error("sudo should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitPush(t *testing.T) {
+func TestCheck_GitPush(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git push")
-	if ok {
-		t.Error("git push should not be read-only")
+	d, _, _ := c.Check("git push")
+	if d != rules.NoOpinion {
+		t.Error("git push should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitPushOrigin(t *testing.T) {
+func TestCheck_GitPushOrigin(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git push origin main")
-	if ok {
-		t.Error("git push origin main should not be read-only")
+	d, _, _ := c.Check("git push origin main")
+	if d != rules.NoOpinion {
+		t.Error("git push origin main should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitCommit(t *testing.T) {
+func TestCheck_GitCommit(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git commit -m 'fix'")
-	if ok {
-		t.Error("git commit should not be read-only")
+	d, _, _ := c.Check("git commit -m 'fix'")
+	if d != rules.NoOpinion {
+		t.Error("git commit should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitCheckout(t *testing.T) {
+func TestCheck_GitCheckout(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git checkout -b feature")
-	if ok {
-		t.Error("git checkout should not be read-only")
+	d, _, _ := c.Check("git checkout -b feature")
+	if d != rules.NoOpinion {
+		t.Error("git checkout should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitRemoteAdd(t *testing.T) {
+func TestCheck_GitRemoteAdd(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git remote add origin git@github.com:user/repo.git")
-	if ok {
-		t.Error("git remote add should not be read-only")
+	d, _, _ := c.Check("git remote add origin git@github.com:user/repo.git")
+	if d != rules.NoOpinion {
+		t.Error("git remote add should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitBranchDelete(t *testing.T) {
+func TestCheck_GitBranchDelete(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git branch -D old-branch")
-	if ok {
-		t.Error("git branch -D should not be read-only")
+	d, _, _ := c.Check("git branch -D old-branch")
+	if d != rules.NoOpinion {
+		t.Error("git branch -D should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitBranchCreate(t *testing.T) {
+func TestCheck_GitBranchCreate(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git branch new-feature")
-	if ok {
-		t.Error("git branch new-feature should not be read-only")
+	d, _, _ := c.Check("git branch new-feature")
+	if d != rules.NoOpinion {
+		t.Error("git branch new-feature should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitTagCreate(t *testing.T) {
+func TestCheck_GitTagCreate(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git tag v1.0.0")
-	if ok {
-		t.Error("git tag v1.0.0 should not be read-only")
+	d, _, _ := c.Check("git tag v1.0.0")
+	if d != rules.NoOpinion {
+		t.Error("git tag v1.0.0 should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitStashBare(t *testing.T) {
+func TestCheck_GitStashBare(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git stash")
-	if ok {
-		t.Error("git stash (bare) should not be read-only")
+	d, _, _ := c.Check("git stash")
+	if d != rules.NoOpinion {
+		t.Error("git stash (bare) should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitStashPop(t *testing.T) {
+func TestCheck_GitStashPop(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git stash pop")
-	if ok {
-		t.Error("git stash pop should not be read-only")
+	d, _, _ := c.Check("git stash pop")
+	if d != rules.NoOpinion {
+		t.Error("git stash pop should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitC(t *testing.T) {
+func TestCheck_GitC(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git -C /tmp status")
-	if ok {
-		t.Error("git -C should not be read-only")
+	d, _, _ := c.Check("git -C /tmp status")
+	if d != rules.NoOpinion {
+		t.Error("git -C should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GitConfigGlobal(t *testing.T) {
+func TestCheck_GitConfigGlobal(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git config --global user.name New")
-	if ok {
-		t.Error("git config --global should not be read-only")
+	d, _, _ := c.Check("git config --global user.name New")
+	if d != rules.NoOpinion {
+		t.Error("git config --global should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_FindExec(t *testing.T) {
+func TestCheck_FindExec(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("find . -name '*.go' -exec rm {} \\;")
-	if ok {
-		t.Error("find -exec should not be read-only")
+	d, _, _ := c.Check("find . -name '*.go' -exec rm {} \\;")
+	if d != rules.NoOpinion {
+		t.Error("find -exec should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_SedInPlace(t *testing.T) {
+func TestCheck_SedInPlace(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("sed -i 's/old/new/g' file.txt")
-	if ok {
-		t.Error("sed -i should not be read-only")
+	d, _, _ := c.Check("sed -i 's/old/new/g' file.txt")
+	if d != rules.NoOpinion {
+		t.Error("sed -i should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Make(t *testing.T) {
+func TestCheck_Make(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("make build")
-	if ok {
-		t.Error("make should not be read-only")
+	d, _, _ := c.Check("make build")
+	if d != rules.NoOpinion {
+		t.Error("make should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Docker(t *testing.T) {
+func TestCheck_Docker(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("docker ps")
+	d, _, err := c.Check("docker ps")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("docker ps should be read-only")
+	if d != rules.Allow {
+		t.Error("docker ps should be allow")
 	}
 }
 
-func TestIsReadOnly_DockerRun(t *testing.T) {
+func TestCheck_DockerRun(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("docker run nginx")
-	if ok {
-		t.Error("docker run should not be read-only")
+	d, _, _ := c.Check("docker run nginx")
+	if d != rules.NoOpinion {
+		t.Error("docker run should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Npm(t *testing.T) {
+func TestCheck_Npm(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("npm install")
-	if ok {
-		t.Error("npm should not be read-only")
+	d, _, _ := c.Check("npm install")
+	if d != rules.NoOpinion {
+		t.Error("npm should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Python(t *testing.T) {
+func TestCheck_Python(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("python -c 'import os; os.remove(\"x\")'")
-	if ok {
-		t.Error("python should not be read-only")
+	d, _, _ := c.Check("python -c 'import os; os.remove(\"x\")'")
+	if d != rules.NoOpinion {
+		t.Error("python should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Curl(t *testing.T) {
+func TestCheck_Curl(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("curl https://example.com")
-	if ok {
-		t.Error("curl should not be read-only")
+	d, _, _ := c.Check("curl https://example.com")
+	if d != rules.NoOpinion {
+		t.Error("curl should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GoBuild(t *testing.T) {
+func TestCheck_GoBuild(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("go build ./...")
-	if !ok {
-		t.Error("go build ./... should be read-only")
+	d, _, _ := c.Check("go build ./...")
+	if d != rules.Allow {
+		t.Error("go build ./... should be allow")
 	}
 }
 
-func TestIsReadOnly_GoModTidy(t *testing.T) {
+func TestCheck_GoModTidy(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("go mod tidy")
-	if ok {
-		t.Error("go mod tidy should not be read-only")
+	d, _, _ := c.Check("go mod tidy")
+	if d != rules.NoOpinion {
+		t.Error("go mod tidy should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_GoTestC(t *testing.T) {
+func TestCheck_GoTestC(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("go test -c ./...")
-	if ok {
-		t.Error("go test -c should not be read-only")
+	d, _, _ := c.Check("go test -c ./...")
+	if d != rules.NoOpinion {
+		t.Error("go test -c should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_UnknownCommand(t *testing.T) {
+func TestCheck_UnknownCommand(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("some_unknown_command --foo")
-	if ok {
-		t.Error("unknown command should not be read-only")
+	d, _, _ := c.Check("some_unknown_command --foo")
+	if d != rules.NoOpinion {
+		t.Error("unknown command should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_CommandSubstitution(t *testing.T) {
+func TestCheck_CommandSubstitution(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("echo $(whoami)")
-	if ok {
-		t.Error("command substitution should not be read-only")
+	d, _, _ := c.Check("echo $(whoami)")
+	if d != rules.NoOpinion {
+		t.Error("command substitution should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Subshell(t *testing.T) {
+func TestCheck_Subshell(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("(cd /tmp && ls)")
-	if ok {
-		t.Error("subshell should not be read-only")
+	d, _, _ := c.Check("(cd /tmp && ls)")
+	if d != rules.NoOpinion {
+		t.Error("subshell should be no-opinion")
 	}
 }
 
 // ── CD path tracking ───────────────────────────────────────
 
-func TestIsReadOnly_CDEscapesRoot(t *testing.T) {
+func TestCheck_CDEscapesRoot(t *testing.T) {
 	c := newTestChecker()
 
 	tests := []string{
@@ -465,216 +465,290 @@ func TestIsReadOnly_CDEscapesRoot(t *testing.T) {
 
 	for _, input := range tests {
 		t.Run(input, func(t *testing.T) {
-			ok, _ := c.IsReadOnly(input)
-			if ok {
-				t.Error("cd escaping root should not be read-only")
+			d, _, _ := c.Check(input)
+			if d != rules.NoOpinion {
+				t.Error("cd escaping root should be no-opinion")
 			}
 		})
 	}
 }
 
-func TestIsReadOnly_CDIntoSubdir(t *testing.T) {
+func TestCheck_CDIntoSubdir(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("cd src && ls")
+	d, _, err := c.Check("cd src && ls")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("cd into subdir within root should be read-only")
+	if d != rules.Allow {
+		t.Error("cd into subdir within root should be allow")
 	}
 }
 
-func TestIsReadOnly_CDRoundTrip(t *testing.T) {
+func TestCheck_CDRoundTrip(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("cd src && ls && cd ..")
+	d, _, err := c.Check("cd src && ls && cd ..")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("cd round trip within root should be read-only")
+	if d != rules.Allow {
+		t.Error("cd round trip within root should be allow")
 	}
 }
 
-func TestIsReadOnly_CDTilde(t *testing.T) {
+func TestCheck_CDTilde(t *testing.T) {
 	c := newTestChecker()
 	// ~ resolves to /home/user which is NOT /home/user/project
-	ok, _ := c.IsReadOnly("cd ~ && ls")
-	if ok {
+	d, _, _ := c.Check("cd ~ && ls")
+	if d != rules.NoOpinion {
 		t.Error("cd ~ should escape root")
 	}
 }
 
-func TestIsReadOnly_CDTildeSubdir(t *testing.T) {
+func TestCheck_CDTildeSubdir(t *testing.T) {
 	c := newTestChecker()
 	// ~/project resolves to /home/user/project which IS the root
-	ok, err := c.IsReadOnly("cd ~/project && ls")
+	d, _, err := c.Check("cd ~/project && ls")
 	assertNoError(t, err)
-	if !ok {
+	if d != rules.Allow {
 		t.Error("cd ~/project should stay within root")
 	}
 }
 
-func TestIsReadOnly_CDDynamicPath(t *testing.T) {
+func TestCheck_CDDynamicPath(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("cd $DIR && ls")
-	if ok {
-		t.Error("cd $DIR should not be read-only (dynamic)")
+	d, _, _ := c.Check("cd $DIR && ls")
+	if d != rules.NoOpinion {
+		t.Error("cd $DIR should be no-opinion (dynamic)")
 	}
 }
 
-func TestIsReadOnly_CDBack(t *testing.T) {
+func TestCheck_CDBack(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("cd - && ls")
-	if ok {
-		t.Error("cd - should not be read-only (dynamic)")
+	d, _, _ := c.Check("cd - && ls")
+	if d != rules.NoOpinion {
+		t.Error("cd - should be no-opinion (dynamic)")
 	}
 }
 
-func TestIsReadOnly_CDBare_HomeWithinRoot(t *testing.T) {
+func TestCheck_CDBare_HomeWithinRoot(t *testing.T) {
 	c := &Checker{
 		RootDir: "/home/user",
 		HomeDir: "/home/user",
 		Rules:   rules.Default,
 	}
-	ok, err := c.IsReadOnly("cd && ls")
+	d, _, err := c.Check("cd && ls")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("cd (bare) should be read-only when home is within root")
+	if d != rules.Allow {
+		t.Error("cd (bare) should be allow when home is within root")
 	}
 }
 
-func TestIsReadOnly_CDBare_HomeOutsideRoot(t *testing.T) {
+func TestCheck_CDBare_HomeOutsideRoot(t *testing.T) {
 	c := newTestChecker() // root=/home/user/project, home=/home/user
-	ok, _ := c.IsReadOnly("cd && ls")
-	if ok {
-		t.Error("cd (bare) should not be read-only when home escapes root")
+	d, _, _ := c.Check("cd && ls")
+	if d != rules.NoOpinion {
+		t.Error("cd (bare) should be no-opinion when home escapes root")
 	}
 }
 
 // ── Mixed: one bad command spoils the whole chain ──────────
 
-func TestIsReadOnly_GoodThenBad(t *testing.T) {
+func TestCheck_GoodThenBad(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("git status && rm -rf /")
-	if ok {
-		t.Error("chain with one mutable command should not be read-only")
+	d, _, _ := c.Check("git status && rm -rf /")
+	if d != rules.NoOpinion {
+		t.Error("chain with one mutable command should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_LsThenGitPush(t *testing.T) {
+func TestCheck_LsThenGitPush(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("ls && git push")
-	if ok {
-		t.Error("chain with git push should not be read-only")
+	d, _, _ := c.Check("ls && git push")
+	if d != rules.NoOpinion {
+		t.Error("chain with git push should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_OutputRedirect(t *testing.T) {
+func TestCheck_OutputRedirect(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("echo hello > file.txt")
-	if ok {
-		t.Error("output redirect should not be read-only")
+	d, _, _ := c.Check("echo hello > file.txt")
+	if d != rules.NoOpinion {
+		t.Error("output redirect should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_AppendRedirect(t *testing.T) {
+func TestCheck_AppendRedirect(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("echo hello >> file.txt")
-	if ok {
-		t.Error("append redirect should not be read-only")
+	d, _, _ := c.Check("echo hello >> file.txt")
+	if d != rules.NoOpinion {
+		t.Error("append redirect should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_DupToFile(t *testing.T) {
+func TestCheck_DupToFile(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("echo hello >& /tmp/file")
-	if ok {
-		t.Error("redirect to file should not be read-only")
+	d, _, _ := c.Check("echo hello >& /tmp/file")
+	if d != rules.NoOpinion {
+		t.Error("redirect to file should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_DupFd(t *testing.T) {
+func TestCheck_DupFd(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go test ./... 2>&1")
+	d, _, err := c.Check("go test ./... 2>&1")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("2>&1 fd duplication should be read-only")
+	if d != rules.Allow {
+		t.Error("2>&1 fd duplication should be allow")
 	}
 }
 
-func TestIsReadOnly_InputRedirect(t *testing.T) {
+func TestCheck_InputRedirect(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("grep pattern < input.txt")
+	d, _, err := c.Check("grep pattern < input.txt")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("input redirect should be read-only")
+	if d != rules.Allow {
+		t.Error("input redirect should be allow")
 	}
 }
 
-func TestIsReadOnly_EnvCommand(t *testing.T) {
+func TestCheck_EnvCommand(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("env FOO=bar rm -rf /")
-	if ok {
-		t.Error("env with command should not be read-only")
+	d, _, _ := c.Check("env FOO=bar rm -rf /")
+	if d != rules.NoOpinion {
+		t.Error("env with command should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Printenv(t *testing.T) {
+func TestCheck_Printenv(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("printenv HOME")
+	d, _, err := c.Check("printenv HOME")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("printenv should be read-only")
+	if d != rules.Allow {
+		t.Error("printenv should be allow")
 	}
 }
 
-func TestIsReadOnly_GoTestCount(t *testing.T) {
+func TestCheck_GoTestCount(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go test -count=1 ./...")
+	d, _, err := c.Check("go test -count=1 ./...")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("go test -count=1 should be read-only")
+	if d != rules.Allow {
+		t.Error("go test -count=1 should be allow")
 	}
 }
 
-func TestIsReadOnly_GoTestCover(t *testing.T) {
+func TestCheck_GoTestCover(t *testing.T) {
 	c := newTestChecker()
-	ok, err := c.IsReadOnly("go test -cover ./...")
+	d, _, err := c.Check("go test -cover ./...")
 	assertNoError(t, err)
-	if !ok {
-		t.Error("go test -cover should be read-only")
+	if d != rules.Allow {
+		t.Error("go test -cover should be allow")
+	}
+}
+
+// ── Deny from config ───────────────────────────────────────
+
+func TestCheck_DenyFromRule(t *testing.T) {
+	c := &Checker{
+		RootDir: "/home/user/project",
+		HomeDir: "/home/user",
+		Rules: map[string]*rules.Rule{
+			"curl": {
+				Default: rules.Deny,
+				Message: "curl is not allowed in this project",
+			},
+		},
+	}
+	d, reason, _ := c.Check("curl https://example.com")
+	if d != rules.Deny {
+		t.Error("curl should be denied")
+	}
+	if reason == "" {
+		t.Error("expected deny reason")
+	}
+}
+
+func TestCheck_DenyShortCircuits(t *testing.T) {
+	c := &Checker{
+		RootDir: "/home/user/project",
+		HomeDir: "/home/user",
+		Rules: map[string]*rules.Rule{
+			"ls":   {Default: rules.Allow},
+			"curl": {
+				Default: rules.Deny,
+				Message: "curl is not allowed in this project",
+			},
+		},
+	}
+	d, reason, _ := c.Check("ls && curl https://example.com && ls")
+	if d != rules.Deny {
+		t.Error("should be denied because of curl")
+	}
+	if reason == "" {
+		t.Error("expected deny reason")
+	}
+}
+
+func TestCheck_DenyWithSubcommandOverride(t *testing.T) {
+	c := &Checker{
+		RootDir: "/home/user/project",
+		HomeDir: "/home/user",
+		Rules: map[string]*rules.Rule{
+			"kubectl": {
+				Default: rules.Deny,
+				Message: "kubectl is blocked",
+				Subcommands: map[string]*rules.Rule{
+					"get": {Default: rules.Allow},
+				},
+			},
+		},
+	}
+
+	// get matches subcommand, should be allowed
+	d, _, _ := c.Check("kubectl get pods")
+	if d != rules.Allow {
+		t.Error("kubectl get should be allowed via subcommand")
+	}
+
+	// exec doesn't match subcommand, falls to deny
+	d, reason, _ := c.Check("kubectl exec -it my-pod -- bash")
+	if d != rules.Deny {
+		t.Error("kubectl exec should be denied")
+	}
+	if reason == "" {
+		t.Error("expected deny reason")
 	}
 }
 
 // ── Edge cases ─────────────────────────────────────────────
 
-func TestIsReadOnly_Empty(t *testing.T) {
+func TestCheck_Empty(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("")
-	if ok {
-		t.Error("empty input should not be read-only")
+	d, _, _ := c.Check("")
+	if d != rules.NoOpinion {
+		t.Error("empty input should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_Whitespace(t *testing.T) {
+func TestCheck_Whitespace(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("   ")
-	if ok {
-		t.Error("whitespace input should not be read-only")
+	d, _, _ := c.Check("   ")
+	if d != rules.NoOpinion {
+		t.Error("whitespace input should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_InvalidBash(t *testing.T) {
+func TestCheck_InvalidBash(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("if if if")
-	if ok {
-		t.Error("invalid bash should not be read-only")
+	d, _, _ := c.Check("if if if")
+	if d != rules.NoOpinion {
+		t.Error("invalid bash should be no-opinion")
 	}
 }
 
-func TestIsReadOnly_DynamicCommandName(t *testing.T) {
+func TestCheck_DynamicCommandName(t *testing.T) {
 	c := newTestChecker()
-	ok, _ := c.IsReadOnly("$CMD args")
+	d, _, _ := c.Check("$CMD args")
 	// This may or may not parse cleanly depending on tree-sitter,
 	// but if it does parse, $CMD should be denied
-	if ok {
-		t.Error("dynamic command name should not be read-only")
+	if d == rules.Allow {
+		t.Error("dynamic command name should not be allow")
 	}
 }
 

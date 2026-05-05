@@ -6,7 +6,7 @@ import (
 )
 
 func TestRule_SimpleAllow(t *testing.T) {
-	r := &Rule{Default: true}
+	r := &Rule{Default: Allow}
 	if !r.Allow(nil) {
 		t.Error("expected allow")
 	}
@@ -16,7 +16,7 @@ func TestRule_SimpleAllow(t *testing.T) {
 }
 
 func TestRule_SimpleDeny(t *testing.T) {
-	r := &Rule{Default: false}
+	r := &Rule{}
 	if r.Allow(nil) {
 		t.Error("expected deny")
 	}
@@ -27,10 +27,9 @@ func TestRule_SimpleDeny(t *testing.T) {
 
 func TestRule_SubcommandAllow(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
-			"status": {Default: true},
-			"diff":   {Default: true},
+			"status": {Default: Allow},
+			"diff":   {Default: Allow},
 		},
 	}
 	if !r.Allow([]string{"status"}) {
@@ -43,10 +42,9 @@ func TestRule_SubcommandAllow(t *testing.T) {
 
 func TestRule_SubcommandDeny(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
-			"push":   {Default: false},
-			"commit": {Default: false},
+			"push":   {},
+			"commit": {},
 		},
 	}
 	if r.Allow([]string{"push"}) {
@@ -59,12 +57,11 @@ func TestRule_SubcommandDeny(t *testing.T) {
 
 func TestRule_SubcommandFallbackToDefault(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
-			"status": {Default: true},
+			"status": {Default: Allow},
 		},
 	}
-	// "clone" is not in subcommands, falls to Default (false)
+	// "clone" is not in subcommands, falls to Default (NoOpinion)
 	if r.Allow([]string{"clone"}) {
 		t.Error("unknown git subcommand should fall to default (deny)")
 	}
@@ -72,7 +69,7 @@ func TestRule_SubcommandFallbackToDefault(t *testing.T) {
 
 func TestRule_DenyFlags(t *testing.T) {
 	r := &Rule{
-		Default:   true,
+		Default:   Allow,
 		DenyFlags: []string{"-i", "--in-place"},
 	}
 	if !r.Allow([]string{"s/old/new/g", "file.txt"}) {
@@ -88,15 +85,13 @@ func TestRule_DenyFlags(t *testing.T) {
 
 func TestRule_DenyFlagsAtNestedLevel(t *testing.T) {
 	r := &Rule{
-		Default:   false,
 		DenyFlags: []string{"-C", "--work-tree"},
 		Subcommands: map[string]*Rule{
 			"branch": {
-				Default:   false,
 				DenyFlags: []string{"-d", "-D", "--delete", "-m", "-M", "--move"},
 				Subcommands: map[string]*Rule{
-					"-l":     {Default: true},
-					"--list": {Default: true},
+					"-l":     {Default: Allow},
+					"--list": {Default: Allow},
 				},
 			},
 		},
@@ -114,16 +109,14 @@ func TestRule_DenyFlagsAtNestedLevel(t *testing.T) {
 
 func TestRule_DeepNesting(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
 			"remote": {
-				Default: false,
 				Subcommands: map[string]*Rule{
-					"-v":      {Default: true},
-					"show":    {Default: true},
-					"get-url": {Default: true},
-					"add":     {Default: false},
-					"remove":  {Default: false},
+					"-v":      {Default: Allow},
+					"show":    {Default: Allow},
+					"get-url": {Default: Allow},
+					"add":     {},
+					"remove":  {},
 				},
 			},
 		},
@@ -147,14 +140,12 @@ func TestRule_DeepNesting(t *testing.T) {
 
 func TestRule_ThreeLevels(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
 			"mod": {
-				Default: false,
 				Subcommands: map[string]*Rule{
-					"graph":    {Default: true},
-					"download": {Default: true},
-					"tidy":     {Default: false},
+					"graph":    {Default: Allow},
+					"download": {Default: Allow},
+					"tidy":     {},
 				},
 			},
 		},
@@ -173,10 +164,9 @@ func TestRule_ThreeLevels(t *testing.T) {
 func TestRule_FlagDenyBeforeSubcommand(t *testing.T) {
 	// git -C /tmp status → -C should be caught at top level
 	r := &Rule{
-		Default:   false,
 		DenyFlags: []string{"-C"},
 		Subcommands: map[string]*Rule{
-			"status": {Default: true},
+			"status": {Default: Allow},
 		},
 	}
 	if r.Allow([]string{"-C", "/tmp", "status"}) {
@@ -186,7 +176,7 @@ func TestRule_FlagDenyBeforeSubcommand(t *testing.T) {
 
 func TestRule_FindDenyFlags(t *testing.T) {
 	r := &Rule{
-		Default:   true,
+		Default:   Allow,
 		DenyFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete"},
 	}
 	if !r.Allow([]string{".", "-name", "*.go"}) {
@@ -202,15 +192,13 @@ func TestRule_FindDenyFlags(t *testing.T) {
 
 func TestRule_StashNested(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
 			"stash": {
-				Default: false,
 				Subcommands: map[string]*Rule{
-					"list": {Default: true},
-					"show": {Default: true},
-					"push": {Default: false},
-					"pop":  {Default: false},
+					"list": {Default: Allow},
+					"show": {Default: Allow},
+					"push": {},
+					"pop":  {},
 				},
 			},
 		},
@@ -234,7 +222,7 @@ func TestRule_StashNested(t *testing.T) {
 
 func TestRule_DenyFlags_ExactMatch(t *testing.T) {
 	r := &Rule{
-		Default:   true,
+		Default:   Allow,
 		DenyFlags: []string{"-c", "--coverprofile"},
 	}
 	if !r.Allow([]string{"-count=1", "./..."}) {
@@ -253,7 +241,7 @@ func TestRule_DenyFlags_ExactMatch(t *testing.T) {
 
 func TestRule_DenyFlags_EqualsSuffix(t *testing.T) {
 	r := &Rule{
-		Default:   true,
+		Default:   Allow,
 		DenyFlags: []string{"--global"},
 	}
 	if r.Allow([]string{"--global=value"}) {
@@ -266,10 +254,9 @@ func TestRule_DenyFlags_EqualsSuffix(t *testing.T) {
 
 func TestRule_GoTestDenyFlags(t *testing.T) {
 	r := &Rule{
-		Default: false,
 		Subcommands: map[string]*Rule{
 			"test": {
-				Default:   true,
+				Default:   Allow,
 				DenyFlags: []string{"-c", "--coverprofile"},
 			},
 		},
@@ -284,7 +271,7 @@ func TestRule_GoTestDenyFlags(t *testing.T) {
 
 func TestRule_ConfigDenyFlags(t *testing.T) {
 	r := &Rule{
-		Default:   true,
+		Default:   Allow,
 		DenyFlags: []string{"--global", "--system", "--file"},
 	}
 	if !r.Allow([]string{"--get", "user.name"}) {
@@ -292,6 +279,62 @@ func TestRule_ConfigDenyFlags(t *testing.T) {
 	}
 	if r.Allow([]string{"--global", "user.name", "New"}) {
 		t.Error("git config --global should be denied")
+	}
+}
+
+func TestRule_Resolve_DenyDecision(t *testing.T) {
+	r := &Rule{
+		Default: Deny,
+		Message: "this command is blocked",
+	}
+	d, msg := r.Resolve(nil)
+	if d != Deny {
+		t.Error("expected deny decision")
+	}
+	if msg == "" {
+		t.Error("expected deny message")
+	}
+}
+
+func TestRule_Resolve_DenyWithSubcommand(t *testing.T) {
+	r := &Rule{
+		Default: Deny,
+		Message: "kubectl blocked",
+		Subcommands: map[string]*Rule{
+			"get": {Default: Allow},
+		},
+	}
+	// "get" matches subcommand, should be allowed
+	d, _ := r.Resolve([]string{"get", "pods"})
+	if d != Allow {
+		t.Error("kubectl get should be allowed via subcommand")
+	}
+	// no subcommand match, falls to default deny
+	d, msg := r.Resolve([]string{"exec", "-it", "pod", "--", "bash"})
+	if d != Deny {
+		t.Error("kubectl exec should be denied")
+	}
+	if msg == "" {
+		t.Error("expected deny message")
+	}
+}
+
+func TestRule_Resolve_DenyMessageFallback(t *testing.T) {
+	r := &Rule{Default: Deny}
+	_, msg := r.Resolve(nil)
+	if msg != "denied by rule" {
+		t.Errorf("expected fallback message, got %q", msg)
+	}
+}
+
+func TestRule_Resolve_DenyMessageCustom(t *testing.T) {
+	r := &Rule{
+		Default: Deny,
+		Message: "no curl allowed",
+	}
+	_, msg := r.Resolve(nil)
+	if msg != "no curl allowed" {
+		t.Errorf("expected custom message, got %q", msg)
 	}
 }
 

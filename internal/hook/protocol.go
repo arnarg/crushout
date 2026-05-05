@@ -14,5 +14,6 @@ type Input struct {
 // Output is the JSON envelope returned on stdout.
 type Output struct {
 	Version  int    `json:"version"`
-	Decision string `json:"decision,omitempty"` // "allow" or omit
+	Decision string `json:"decision,omitempty"` // "allow", "deny", or omit
+	Reason   string `json:"reason,omitempty"`
 }

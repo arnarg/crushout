@@ -1,10 +1,8 @@
 # crushout
 
-A [Crush](https://github.com/charmbracelet/crush) hook that auto-approves read-only bash commands.
+A [Crush](https://github.com/charmbracelet/crush) hook that auto-approves read-only bash commands and can hard-block dangerous ones via config.
 
-When an agent runs `git status`, `ls -la`, or `cat file.txt`, crushout skips the permission prompt. When it runs `rm -rf /`, `git push`, or anything it can't confidently classify, crushout stays silent and the normal permission flow takes over.
-
-It never denies, it only fast-tracks safe commands or gets out of the way.
+When an agent runs `git status`, `ls -la`, or `cat file.txt`, crushout skips the permission prompt. When it runs `rm -rf /`, `git push`, or anything it can't confidently classify, crushout stays silent and the normal permission flow takes over. With a `.crushout.yml` config, you can also hard-deny specific commands so they're blocked outright.
 
 ## How it works
 
@@ -123,6 +121,9 @@ Or use a full path:
 | `docker run nginx` | 🔒 prompt | mutable subcommand |
 | `npm install` | 🔒 prompt | mutable command |
 | `unknown_cmd --foo` | 🔒 prompt | not in rules |
+| | | |
+| `curl https://example.com` *(with `rules: {curl: deny}`)* | 🚫 deny | hard-denied by config |
+| `kubectl exec -it pod -- bash` *(with deny rule)* | 🚫 deny | hard-denied by config |
 
 ## Project structure
 
@@ -146,16 +147,15 @@ Edit `internal/rules/defaults.go`. The rule type is recursive:
 ```go
 var Default = map[string]*Rule{
     "my-tool": {
-        Default:   true,                          // allow unknown subcommands
-        DenyFlags: []string{"--dangerous"},       // block these flags
+        Default:   rules.Allow,                    // allow unknown subcommands
+        DenyFlags: []string{"--dangerous"},        // prompt on these flags
         Subcommands: map[string]*Rule{
-            "read":  {Default: true},
-            "write": {Default: false},
+            "read":  {Default: rules.Allow},
+            "write": {Default: rules.NoOpinion},   // prompt
             "db": {
-                Default: false,
                 Subcommands: map[string]*Rule{
-                    "migrate": {Default: false},
-                    "seed":    {Default: false},
+                    "migrate": {Default: rules.NoOpinion},
+                    "seed":    {Default: rules.NoOpinion},
                 },
             },
         },
@@ -179,15 +179,34 @@ Instead of editing the source, you can drop `.crushout.yml` or `.crushout.yaml` 
 overwrite_defaults: false
 rules:
   nix:
-    default: false
+    decision: prompt
     subcommands:
       build:
-        default: true
+        decision: allow
   git:
     subcommands:
       status:
-        default: false  # require confirmation even for status
+        decision: prompt  # require confirmation even for status
 ```
+
+#### Shorthand syntax
+
+Rules can be written as a simple string instead of a full mapping:
+
+```yaml
+rules:
+  ls: allow
+  rm: deny
+  kubectl:
+    decision: prompt    # default if no subcommand matches
+    subcommands:
+      get: allow        # allow `kubectl get *`
+      exec:             # deny `kubectl exec *`
+        decision: deny
+        message: "no remote execution"
+```
+
+The string form (`allow`, `deny`, or `prompt`) is equivalent to `{decision: <value>}`.
 
 ### Merge behavior
 
@@ -201,40 +220,54 @@ When `overwrite_defaults: true`, only the rules you specify are active; the buil
 |---|---|---|
 | `overwrite_defaults` | bool | If `true`, ignore built-in rules. Default is `false`. |
 | `rules` | map | Map of command name → rule. |
-| `rules.*.default` | bool | Allow unknown subcommands. Defaults to `false` if not set. |
+| `rules.*` | string or map | Shorthand (`allow`, `deny`, `prompt`) or full rule mapping. |
+| `rules.*.decision` | string | Decision for unknown subcommands: `allow`, `deny`, or `prompt`. Defaults to `prompt` if not set. |
 | `rules.*.deny_flags` | []string | Flags that always require confirmation. |
+| `rules.*.message` | string | Custom message shown when denied. Only used with `decision: deny`. |
 | `rules.*.subcommands` | map | Recursive map of subcommand name → rule. |
 
 ### Examples
 
-**Allow `nix build` but deny everything else under `nix`:**
+**Allow `nix build` but prompt for everything else under `nix`:**
 
 ```yaml
 rules:
   nix:
-    default: false
+    decision: prompt
     subcommands:
-      build:
-        default: true
+      build: allow
 ```
 
-**Disable `git status` (normally allowed):**
+**Prompt on `git status` (normally allowed):**
 
 ```yaml
 rules:
   git:
     subcommands:
       status:
-        default: false
+        decision: prompt
 ```
 
-**Start fresh with only `ls` allowed:**
+**Hard-deny `curl` and `kubectl exec`:**
+
+```yaml
+rules:
+  curl: deny
+  kubectl:
+    decision: prompt
+    subcommands:
+      get: allow
+      exec:
+        decision: deny
+        message: "no remote execution in this project"
+```
+
+**Start fresh with only `ls` allowed (everything else is prompted):**
 
 ```yaml
 overwrite_defaults: true
 rules:
-  ls:
-    default: true
+  ls: allow
 ```
 
 ## Hook protocol
@@ -265,11 +298,23 @@ Output (no opinion, let the normal permission prompt handle it):
 {}
 ```
 
-## Why not deny?
+Output (hard-deny):
 
-A deny from a hook is final and the model sees the error and tries something else, which costs tokens and time. The permission prompt already exists as the human-in-the-loop gate. crushout only short-circuits when it's **confident** the command is safe, and stays silent for everything else.
+```json
+{"version": 1, "decision": "deny", "reason": "crushout: no curl allowed (rule for 'curl')"}
+```
 
-This also means false negatives (a safe command that isn't auto-approved) are just a minor inconvenience. False positives (a dangerous command that gets auto-approved) are the real threat, and the conservative default-unknown-to-prompt posture avoids them.
+## About deny
+
+By default, crushout only has two outcomes: **allow** (auto-approve) and **no opinion** (fall through to Crush's normal permission prompt). The built-in rules never deny, they either fast-track safe commands or get out of the way.
+
+Through `.crushout.yml`, you can add explicit **deny** rules. A deny is final, the model sees the error and tries something else. This is useful when you want to block a command the defaults would otherwise allow (or just prompt for):
+
+- Deny `kubectl exec` outright instead of letting the user approve it each time
+- Deny `curl` entirely in a sensitive project
+- Deny `git push --force` specifically while still prompting for plain `git push`
+
+Use `deny` sparingly. The permission prompt already exists as the human-in-the-loop gate. False negatives (a safe command that isn't auto-approved) are just a minor inconvenience. False positives (a dangerous command that gets auto-approved) are the real threat, and the conservative default-unknown-to-prompt posture avoids them.
 
 ## License
 

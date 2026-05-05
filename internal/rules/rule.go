@@ -1,22 +1,56 @@
 package rules
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
-// Rule is a recursive allow/deny rule.
+type Decision int
+
+const (
+	NoOpinion Decision = iota
+	Allow
+	Deny
+)
+
+func ParseDecision(s string) (Decision, error) {
+	switch s {
+	case "allow":
+		return Allow, nil
+	case "deny":
+		return Deny, nil
+	case "prompt":
+		return NoOpinion, nil
+	default:
+		return NoOpinion, fmt.Errorf("invalid decision %q (use allow, deny, or prompt)", s)
+	}
+}
+
+func (d Decision) String() string {
+	switch d {
+	case Allow:
+		return "allow"
+	case Deny:
+		return "deny"
+	default:
+		return "prompt"
+	}
+}
+
 type Rule struct {
-	Subcommands     map[string]*Rule `json:"subcommands,omitempty"`
-	DenyFlags       []string         `json:"deny_flags,omitempty"`
-	Default         bool             `json:"default"`
-	DefaultExplicit bool             `json:"-"` // true if Default was explicitly set (used for merge)
+	Subcommands     map[string]*Rule `yaml:"subcommands,omitempty"`
+	DenyFlags       []string         `yaml:"deny_flags,omitempty"`
+	Default         Decision         `yaml:"default"`
+	DefaultExplicit bool             `yaml:"-"`
+	Message         string           `yaml:"message,omitempty"`
 }
 
-// Allow walks args as a subcommand chain, checking DenyFlags at each level.
 func (r *Rule) Allow(args []string) bool {
-	ok, _ := r.resolve(args)
-	return ok
+	d, _ := r.Resolve(args)
+	return d == Allow
 }
 
-func (r *Rule) resolve(args []string) (bool, string) {
+func (r *Rule) Resolve(args []string) (Decision, string) {
 	current := r
 
 	remaining := args
@@ -24,7 +58,7 @@ func (r *Rule) resolve(args []string) (bool, string) {
 		for _, arg := range remaining {
 			for _, flag := range current.DenyFlags {
 				if arg == flag || strings.HasPrefix(arg, flag+"=") {
-					return false, "denied flag"
+					return NoOpinion, "denied flag"
 				}
 			}
 		}
@@ -40,5 +74,16 @@ func (r *Rule) resolve(args []string) (bool, string) {
 		remaining = remaining[1:]
 	}
 
-	return current.Default, ""
+	msg := ""
+	if current.Default == Deny {
+		msg = current.denyMessage()
+	}
+	return current.Default, msg
+}
+
+func (r *Rule) denyMessage() string {
+	if r.Message != "" {
+		return r.Message
+	}
+	return "denied by rule"
 }

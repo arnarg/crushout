@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -14,48 +15,60 @@ type Checker struct {
 	Rules   map[string]*rules.Rule
 }
 
-// IsReadOnly returns true only if every command is confidently non-mutable.
-// Returns false for anything ambiguous, unknown, or mutable.
-func (c *Checker) IsReadOnly(input string) (bool, error) {
+// Check evaluates the input command string and returns a Decision.
+// Allow means auto-approve, Deny means hard block, NoOpinion means
+// let the normal permission prompt handle it.
+func (c *Checker) Check(input string) (rules.Decision, string, error) {
 	result, err := bash.Parse(input)
 	if err != nil {
-		return false, nil
+		return rules.NoOpinion, "", nil
 	}
 
 	if result.HasError || result.IsComplex || result.HasRedirect || len(result.Commands) == 0 {
-		return false, nil
+		return rules.NoOpinion, "", nil
 	}
 
+	final := rules.Allow
 	cwd := c.RootDir
 	for _, cmd := range result.Commands {
 		if cmd.Name == "cd" {
 			if !c.isSafeCD(cmd, &cwd) {
-				return false, nil
+				return rules.NoOpinion, "", nil
 			}
 			continue
 		}
-		if !c.isReadOnly(cmd) {
-			return false, nil
+
+		d, msg := c.checkCommand(cmd)
+		switch d {
+		case rules.Deny:
+			return rules.Deny, msg, nil
+		case rules.NoOpinion:
+			final = rules.NoOpinion
 		}
 	}
 
-	return true, nil
+	return final, "", nil
 }
 
-func (c *Checker) isReadOnly(cmd bash.Command) bool {
+func (c *Checker) checkCommand(cmd bash.Command) (rules.Decision, string) {
 	name := cmd.Name
 	if strings.Contains(name, "/") {
 		name = filepath.Base(name)
 	}
 	if strings.Contains(name, "$") || strings.Contains(name, "`") {
-		return false
+		return rules.NoOpinion, ""
 	}
 
 	rule, exists := c.Rules[name]
 	if !exists {
-		return false
+		return rules.NoOpinion, ""
 	}
-	return rule.Allow(cmd.Args)
+
+	d, msg := rule.Resolve(cmd.Args)
+	if d == rules.Deny && msg != "" {
+		return d, fmt.Sprintf("crushout: %s (rule for '%s')", msg, name)
+	}
+	return d, msg
 }
 
 func (c *Checker) isSafeCD(cmd bash.Command, cwd *string) bool {
