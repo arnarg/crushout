@@ -19,7 +19,13 @@ func main() {
 
 	// If tool is not bash we just skip it
 	if !hook.IsBashTool(input) {
-		fmt.Println("{}")
+		out, err := input.FormatDecision(rules.NoOpinion, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "could not serialize output: %v\n", err)
+			os.Exit(1)
+		}
+
+		os.Stdout.Write(out)
 		return
 	}
 
