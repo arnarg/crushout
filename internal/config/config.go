@@ -11,15 +11,16 @@ import (
 
 // Config represents the .crushout.yml configuration.
 type Config struct {
+	RtkRewrite        bool                   `yaml:"rtk_rewrite"`
 	OverwriteDefaults bool                   `yaml:"overwrite_defaults"`
 	Rules             map[string]*RuleConfig `yaml:"rules"`
 }
 
 // RuleConfig is a rule as specified in YAML.
 type RuleConfig struct {
-	Decision   *Decision              `yaml:"decision"`
-	DenyFlags  []string               `yaml:"deny_flags"`
-	Message    string                 `yaml:"message"`
+	Decision    *Decision              `yaml:"decision"`
+	DenyFlags   []string               `yaml:"deny_flags"`
+	Message     string                 `yaml:"message"`
 	Subcommands map[string]*RuleConfig `yaml:"subcommands"`
 }
 
@@ -72,6 +73,7 @@ func Load(dir string) (*Config, error) {
 		}
 
 		var cfg Config
+		cfg.RtkRewrite = true
 		if err := yaml.Unmarshal(data, &cfg); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", path, err)
 		}

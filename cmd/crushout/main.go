@@ -7,6 +7,7 @@ import (
 	"github.com/arnarg/crushout/internal/checker"
 	"github.com/arnarg/crushout/internal/config"
 	"github.com/arnarg/crushout/internal/hook"
+	"github.com/arnarg/crushout/internal/rewrite"
 	"github.com/arnarg/crushout/internal/rules"
 )
 
@@ -19,7 +20,7 @@ func main() {
 
 	// If tool is not bash we just skip it
 	if !hook.IsBashTool(input) {
-		out, err := input.FormatDecision(rules.NoOpinion, "")
+		out, err := input.FormatDecision(rules.NoOpinion, "", "")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "could not serialize output: %v\n", err)
 			os.Exit(1)
@@ -58,7 +59,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	out, err := input.FormatDecision(d, reason)
+	var rewritten string
+	rtkEnabled := cfg == nil || cfg.RtkRewrite
+	if d != rules.Deny && rtkEnabled {
+		if rw, ok := rewrite.TryRtkRewrite(input.Command()); ok {
+			rewritten = rw
+		}
+	}
+
+	out, err := input.FormatDecision(d, reason, rewritten)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not serialize output: %v\n", err)
 		os.Exit(1)

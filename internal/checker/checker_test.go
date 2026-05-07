@@ -669,7 +669,7 @@ func TestCheck_DenyShortCircuits(t *testing.T) {
 		RootDir: "/home/user/project",
 		HomeDir: "/home/user",
 		Rules: map[string]*rules.Rule{
-			"ls":   {Default: rules.Allow},
+			"ls": {Default: rules.Allow},
 			"curl": {
 				Default: rules.Deny,
 				Message: "curl is not allowed in this project",

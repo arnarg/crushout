@@ -15,7 +15,12 @@ type Hook interface {
 	ToolName() string
 	Command() string
 	SessionID() string
-	FormatDecision(d rules.Decision, reason string) ([]byte, error)
+	FormatDecision(d rules.Decision, reason string, rewritten string) ([]byte, error)
+}
+
+// UpdatedInput represents a rewritten tool input for both protocols.
+type UpdatedInput struct {
+	Command string `json:"command"`
 }
 
 // CrushInput is the JSON payload Crush sends on stdin.
@@ -34,22 +39,30 @@ func (i *CrushInput) CWD() string       { return i.CwdField }
 func (i *CrushInput) ToolName() string  { return i.ToolNameField }
 func (i *CrushInput) Command() string   { return i.ToolInput.CommandField }
 func (i *CrushInput) SessionID() string { return i.SessionIDField }
-func (i *CrushInput) FormatDecision(d rules.Decision, reason string) ([]byte, error) {
+func (i *CrushInput) FormatDecision(d rules.Decision, reason string, rewritten string) ([]byte, error) {
 	switch d {
 	case rules.Allow:
-		return json.Marshal(&CrushOutput{Version: 1, Decision: "allow"})
+		out := CrushOutput{Version: 1, Decision: "allow"}
+		if rewritten != "" {
+			out.UpdatedInput = &UpdatedInput{Command: rewritten}
+		}
+		return json.Marshal(out)
 	case rules.Deny:
 		return json.Marshal(&CrushOutput{Version: 1, Decision: "deny", Reason: reason})
 	default:
+		if rewritten != "" {
+			return json.Marshal(&CrushOutput{Version: 1, UpdatedInput: &UpdatedInput{Command: rewritten}})
+		}
 		return []byte("{}"), nil
 	}
 }
 
 // CrushOutput is the JSON envelope returned on stdout for Crush.
 type CrushOutput struct {
-	Version  int    `json:"version"`
-	Decision string `json:"decision,omitempty"`
-	Reason   string `json:"reason,omitempty"`
+	Version      int           `json:"version"`
+	Decision     string        `json:"decision,omitempty"`
+	Reason       string        `json:"reason,omitempty"`
+	UpdatedInput *UpdatedInput `json:"updated_input,omitempty"`
 }
 
 // ClaudeInput is the JSON payload Claude Code sends on stdin.
@@ -70,31 +83,24 @@ func (i *ClaudeInput) CWD() string       { return i.CwdField }
 func (i *ClaudeInput) ToolName() string  { return i.ToolNameField }
 func (i *ClaudeInput) Command() string   { return i.ToolInput.CommandField }
 func (i *ClaudeInput) SessionID() string { return i.SessionIDField }
-func (i *ClaudeInput) FormatDecision(d rules.Decision, reason string) ([]byte, error) {
-	switch d {
-	case rules.Allow:
-		return json.Marshal(&ClaudeOutput{
-			HookSpecificOutput: &ClaudeHookSpecificOutput{
-				HookEventName:      i.HookEventNameField,
-				PermissionDecision: "allow",
-			},
-		})
-	case rules.Deny:
-		return json.Marshal(&ClaudeOutput{
-			HookSpecificOutput: &ClaudeHookSpecificOutput{
-				HookEventName:            i.HookEventNameField,
-				PermissionDecision:       "deny",
-				PermissionDecisionReason: reason,
-			},
-		})
-	default:
-		return json.Marshal(&ClaudeOutput{
-			HookSpecificOutput: &ClaudeHookSpecificOutput{
-				HookEventName:      i.HookEventNameField,
-				PermissionDecision: "ask",
-			},
-		})
+func (i *ClaudeInput) FormatDecision(d rules.Decision, reason string, rewritten string) ([]byte, error) {
+	base := &ClaudeHookSpecificOutput{
+		HookEventName:      i.HookEventNameField,
+		PermissionDecision: "ask",
 	}
+
+	if d == rules.Allow {
+		base.PermissionDecision = "allow"
+	} else if d == rules.Deny {
+		base.PermissionDecision = "deny"
+		base.PermissionDecisionReason = reason
+	}
+
+	if rewritten != "" && d != rules.Deny {
+		base.UpdatedInput = &UpdatedInput{Command: rewritten}
+	}
+
+	return json.Marshal(&ClaudeOutput{HookSpecificOutput: base})
 }
 
 // ClaudeOutput is the JSON envelope returned on stdout for Claude Code.
@@ -104,9 +110,10 @@ type ClaudeOutput struct {
 
 // ClaudeHookSpecificOutput contains the event-specific output fields for Claude Code.
 type ClaudeHookSpecificOutput struct {
-	HookEventName            string `json:"hookEventName"`
-	PermissionDecision       string `json:"permissionDecision,omitempty"`
-	PermissionDecisionReason string `json:"permissionDecisionReason,omitempty"`
+	HookEventName            string        `json:"hookEventName"`
+	PermissionDecision       string        `json:"permissionDecision,omitempty"`
+	PermissionDecisionReason string        `json:"permissionDecisionReason,omitempty"`
+	UpdatedInput             *UpdatedInput `json:"updatedInput,omitempty"`
 }
 
 // Decode reads JSON from r and returns the appropriate Hook implementation.
