@@ -36,6 +36,15 @@ func (c *Checker) Check(input string) (rules.Decision, string, error) {
 				return rules.NoOpinion, "", nil
 			}
 			continue
+		} else if cmd.Name == "rtk" && len(cmd.Args) > 0 {
+			// If we detect an `rtk` command we treat it as the actual command
+			// it will run. This is done so we don't need to duplicate all the
+			// rules under the `rtk` command. This is done just for evaluating
+			// the command, the command will not be rewritten (other than with
+			// `rtk rewrite` in the end, if in path and enabled).
+			//
+			// Example: `rtk ls -l` -> `ls -l`
+			cmd = bash.Command{Name: cmd.Args[0], Args: cmd.Args[1:], Raw: cmd.Raw}
 		}
 
 		d, msg := c.checkCommand(cmd)

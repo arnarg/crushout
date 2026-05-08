@@ -2,6 +2,7 @@ package rewrite
 
 import (
 	"context"
+	"errors"
 	"os/exec"
 	"strings"
 	"time"
@@ -22,7 +23,14 @@ func TryRtkRewrite(cmd string) (string, bool) {
 
 	out, err := exec.CommandContext(ctx, path, "rewrite", cmd).Output()
 	if err != nil {
-		return "", false
+		// `rtk rewrite` returns either exit code 0 or 3 on success
+		// we need to check for both
+		var eerr *exec.ExitError
+		if errors.As(err, &eerr) && eerr.ExitCode() == 3 {
+			// Do nothing
+		} else {
+			return "", false
+		}
 	}
 
 	rewritten := strings.TrimSpace(string(out))

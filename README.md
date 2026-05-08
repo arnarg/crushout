@@ -35,6 +35,18 @@ Commands are rejected from auto-approval (not denied, just not fast-tracked) if 
 - Parse errors
 - Dynamic command names like `$CMD`
 
+### rtk rewrite
+
+If [rtk](https://github.com/rtk-ai/rtk) is installed in `$PATH`, crushout passes non-denied commands through `rtk rewrite` for Crush or Claude Code to run instead.
+
+This is enabled by default. Disable it in `.crushout.yml`:
+
+```yaml
+rtk_rewrite: false
+```
+
+The rewrite is invisible to the checker as it runs after the allow/deny decision. If `rtk` is not installed, the command passes through unchanged.
+
 ## Install
 
 ```bash
@@ -159,6 +171,8 @@ crushout/
 ├── internal/
 │   ├── hook/protocol.go          # Hook interface, Crush/Claude Code protocol types
 │   ├── bash/parse.go             # tree-sitter parsing and AST traversal
+│   ├── rewrite/rewrite.go        # rtk rewrite integration
+│   ├── config/config.go          # .crushout.yml loading and merging
 │   ├── rules/rule.go             # recursive Rule type and resolution
 │   ├── rules/defaults.go         # built-in rule definitions
 │   └── checker/checker.go        # orchestrator, path tracking
@@ -244,6 +258,7 @@ When `overwrite_defaults: true`, only the rules you specify are active; the buil
 
 | Field | Type | Description |
 |---|---|---|
+| `rtk_rewrite` | bool | If `true`, pass commands through `rtk rewrite`. Default is `true`. |
 | `overwrite_defaults` | bool | If `true`, ignore built-in rules. Default is `false`. |
 | `rules` | map | Map of command name → rule. |
 | `rules.*` | string or map | Shorthand (`allow`, `deny`, `prompt`) or full rule mapping. |
@@ -320,10 +335,22 @@ Output (auto-approve):
 {"version": 1, "decision": "allow"}
 ```
 
+Output (auto-approve with rtk rewrite):
+
+```json
+{"version": 1, "decision": "allow", "updated_input": {"command": "rewritten command"}}
+```
+
 Output (no opinion, let the normal permission prompt handle it):
 
 ```json
 {}
+```
+
+Output (no opinion with rtk rewrite):
+
+```json
+{"updated_input": {"command": "rewritten command"}}
 ```
 
 Output (hard-deny):
@@ -353,10 +380,22 @@ Output (auto-approve):
 {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}
 ```
 
+Output (auto-approve with rtk rewrite):
+
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "updatedInput": {"command": "rewritten command"}}}
+```
+
 Output (ask user, let the normal permission prompt handle it):
 
 ```json
 {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask"}}
+```
+
+Output (ask user with rtk rewrite):
+
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "updatedInput": {"command": "rewritten command"}}}
 ```
 
 Output (hard-deny):

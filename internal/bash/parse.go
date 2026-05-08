@@ -173,14 +173,20 @@ func extractCommand(node *gotreesitter.Node, lang *gotreesitter.Language, src []
 
 	var args []string
 	for i := 0; i < int(node.ChildCount()); i++ {
-		child := node.Child(i)
-		if !child.IsNamed() {
-			continue
-		}
-		if node.FieldNameForChild(i, lang) == "argument" {
-			args = append(args, child.Text(src))
+		if arg, ok := extractChild(node, i, lang, src); ok {
+			args = append(args, arg)
 		}
 	}
 
 	return Command{Name: name, Args: args, Raw: node.Text(src)}
+}
+
+func extractChild(node *gotreesitter.Node, index int, lang *gotreesitter.Language, src []byte) (string, bool) {
+	child := node.Child(index)
+
+	if child.IsNamed() && node.FieldNameForChild(index, lang) == "argument" {
+		return child.Text(src), true
+	}
+
+	return "", false
 }
