@@ -8,6 +8,10 @@ import (
 	"github.com/arnarg/crushout/internal/rules"
 )
 
+func boolPtr(b bool) *bool {
+	return &b
+}
+
 func decisionPtr(d rules.Decision) *Decision {
 	conv := Decision(d)
 	return &conv
@@ -17,17 +21,24 @@ func newRuleWithDecision(d rules.Decision) *rules.Rule {
 	return &rules.Rule{Default: d, DefaultExplicit: true}
 }
 
-func TestLoad_notFound(t *testing.T) {
-	cfg, err := Load("/nonexistent/path")
-	if err != nil {
-		t.Fatalf("expected nil error, got %v", err)
-	}
-	if cfg != nil {
-		t.Fatalf("expected nil config, got %+v", cfg)
+func writeFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestLoad_yaml(t *testing.T) {
+func TestLoadFirst_notFound(t *testing.T) {
+	cf, err := loadFirst("/nonexistent/path", repoConfigNames)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if cf != nil {
+		t.Fatalf("expected nil ConfigFile, got %+v", cf)
+	}
+}
+
+func TestLoadFirst_yaml(t *testing.T) {
 	content := `overwrite_defaults: true
 rules:
   nix:
@@ -38,21 +49,19 @@ rules:
 `
 
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yml"), []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	writeFile(t, dir, ".crushout.yml", content)
 
-	cfg, err := Load(dir)
+	cf, err := loadFirst(dir, repoConfigNames)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if cfg == nil {
-		t.Fatal("expected config, got nil")
+	if cf == nil {
+		t.Fatal("expected ConfigFile, got nil")
 	}
-	if !cfg.OverwriteDefaults {
+	if cf.OverwriteDefaults == nil || !*cf.OverwriteDefaults {
 		t.Error("expected OverwriteDefaults to be true")
 	}
-	nix, ok := cfg.Rules["nix"]
+	nix, ok := cf.Rules["nix"]
 	if !ok {
 		t.Fatal("expected nix rule")
 	}
@@ -68,7 +77,7 @@ rules:
 	}
 }
 
-func TestLoad_yamlShorthand(t *testing.T) {
+func TestLoadFirst_yamlShorthand(t *testing.T) {
 	content := `rules:
   ls: allow
   rm: deny
@@ -80,29 +89,27 @@ func TestLoad_yamlShorthand(t *testing.T) {
 `
 
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yml"), []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	writeFile(t, dir, ".crushout.yml", content)
 
-	cfg, err := Load(dir)
+	cf, err := loadFirst(dir, repoConfigNames)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
-	if cfg == nil {
-		t.Fatal("expected config, got nil")
+	if cf == nil {
+		t.Fatal("expected ConfigFile, got nil")
 	}
 
-	ls := cfg.Rules["ls"]
+	ls := cf.Rules["ls"]
 	if ls == nil || ls.Decision == nil || *ls.Decision != Decision(rules.Allow) {
 		t.Error("expected ls to be allow via shorthand")
 	}
 
-	rm := cfg.Rules["rm"]
+	rm := cf.Rules["rm"]
 	if rm == nil || rm.Decision == nil || *rm.Decision != Decision(rules.Deny) {
 		t.Error("expected rm to be deny via shorthand")
 	}
 
-	kubectl := cfg.Rules["kubectl"]
+	kubectl := cf.Rules["kubectl"]
 	if kubectl == nil || kubectl.Decision == nil || *kubectl.Decision != Decision(rules.NoOpinion) {
 		t.Error("expected kubectl to be prompt")
 	}
@@ -118,55 +125,421 @@ func TestLoad_yamlShorthand(t *testing.T) {
 	}
 }
 
-func TestLoad_yamlPriority(t *testing.T) {
+func TestLoadFirst_ymlPriority(t *testing.T) {
 	yml := `rules: {}`
 	yaml := `rules:
   foo: allow`
 
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yml"), []byte(yml), 0644); err != nil {
-		t.Fatal(err)
+	writeFile(t, dir, ".crushout.yml", yml)
+	writeFile(t, dir, ".crushout.yaml", yaml)
+
+	cf, err := loadFirst(dir, repoConfigNames)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yaml"), []byte(yaml), 0644); err != nil {
-		t.Fatal(err)
+	if cf == nil {
+		t.Fatal("expected ConfigFile, got nil")
+	}
+	// .crushout.yml takes precedence
+	if _, ok := cf.Rules["foo"]; ok {
+		t.Error(".crushout.yml should take precedence over .crushout.yaml")
+	}
+}
+
+func TestLoadFirst_globalYmlPriority(t *testing.T) {
+	yml := `rules: {}`
+	yaml := `rules:
+  foo: allow`
+
+	dir := t.TempDir()
+	writeFile(t, dir, "crushout.yml", yml)
+	writeFile(t, dir, "crushout.yaml", yaml)
+
+	cf, err := loadFirst(dir, globalConfigNames)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if cf == nil {
+		t.Fatal("expected ConfigFile, got nil")
+	}
+	// crushout.yml takes precedence over crushout.yaml
+	if _, ok := cf.Rules["foo"]; ok {
+		t.Error("crushout.yml should take precedence over crushout.yaml")
+	}
+}
+
+func TestLoadFirst_invalidYAML(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, ".crushout.yml", "invalid: [yaml")
+
+	_, err := loadFirst(dir, repoConfigNames)
+	if err == nil {
+		t.Error("expected error for invalid YAML")
+	}
+}
+
+func TestLoadFirst_invalidDecision(t *testing.T) {
+	dir := t.TempDir()
+	content := `rules:
+  ls: maybe`
+	writeFile(t, dir, ".crushout.yml", content)
+
+	_, err := loadFirst(dir, repoConfigNames)
+	if err == nil {
+		t.Error("expected error for invalid decision value")
+	}
+}
+
+func TestResolveRtkRewrite_defaults(t *testing.T) {
+	if got := resolveRtkRewrite(nil, nil); got != true {
+		t.Errorf("expected true, got %v", got)
+	}
+}
+
+func TestResolveRtkRewrite_globalOnly(t *testing.T) {
+	if got := resolveRtkRewrite(&ConfigFile{RtkRewrite: boolPtr(false)}, nil); got != false {
+		t.Errorf("expected false, got %v", got)
+	}
+}
+
+func TestResolveRtkRewrite_repoWins(t *testing.T) {
+	got := resolveRtkRewrite(&ConfigFile{RtkRewrite: boolPtr(false)}, &ConfigFile{RtkRewrite: boolPtr(true)})
+	if got != true {
+		t.Errorf("expected repo to win (true), got %v", got)
+	}
+}
+
+func TestResolveRtkRewrite_repoUnsetFallsBackToGlobal(t *testing.T) {
+	got := resolveRtkRewrite(&ConfigFile{RtkRewrite: boolPtr(false)}, &ConfigFile{})
+	if got != false {
+		t.Errorf("expected global (false) when repo unset, got %v", got)
+	}
+}
+
+func TestResolveRtkRewrite_bothUnset(t *testing.T) {
+	if got := resolveRtkRewrite(&ConfigFile{}, &ConfigFile{}); got != true {
+		t.Errorf("expected true when both unset, got %v", got)
+	}
+}
+
+func TestApplyLayer_mergeMode(t *testing.T) {
+	cf := &ConfigFile{
+		OverwriteDefaults: boolPtr(false),
+		Rules: map[string]*RuleConfig{
+			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+		},
 	}
 
-	cfg, err := Load(dir)
+	result := applyLayer(rules.Default, cf)
+
+	if _, ok := result["ls"]; !ok {
+		t.Error("ls should be preserved from defaults")
+	}
+	nix, ok := result["nix"]
+	if !ok {
+		t.Fatal("nix should be present")
+	}
+	if nix.Default != rules.NoOpinion {
+		t.Error("nix.default should be NoOpinion")
+	}
+}
+
+func TestApplyLayer_overwriteMode(t *testing.T) {
+	cf := &ConfigFile{
+		OverwriteDefaults: boolPtr(true),
+		Rules: map[string]*RuleConfig{
+			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+		},
+	}
+
+	result := applyLayer(rules.Default, cf)
+
+	if _, ok := result["ls"]; ok {
+		t.Error("overwrite=true should drop default rules like ls")
+	}
+	nix, ok := result["nix"]
+	if !ok {
+		t.Fatal("nix should be present")
+	}
+	if nix.Default != rules.NoOpinion {
+		t.Error("nix.default should be NoOpinion")
+	}
+}
+
+func TestApplyLayer_unspecifiedDefaultsToMerge(t *testing.T) {
+	cf := &ConfigFile{
+		Rules: map[string]*RuleConfig{
+			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+		},
+	}
+
+	result := applyLayer(rules.Default, cf)
+
+	if _, ok := result["ls"]; !ok {
+		t.Error("ls should be preserved when overwrite_defaults is unset")
+	}
+}
+
+func TestBuildRules_noConfig(t *testing.T) {
+	result := buildRules(nil, nil)
+	if result == nil {
+		t.Fatal("expected non-nil result for nil config")
+	}
+	if len(result) == 0 {
+		t.Error("nil config should return non-empty rules")
+	}
+}
+
+// TestBuildRules_layeredOverwrite validates the overwrite_defaults matrix
+// across the global and repo layers:
+//
+//	global   repo    app defaults survive?   global survive?
+//	no       no      yes                      yes
+//	yes      no      no                       yes
+//	no       yes     no                       no
+//	yes      yes     no                       no
+func TestBuildRules_layeredOverwrite(t *testing.T) {
+	t.Run("global merge, repo merge", func(t *testing.T) {
+		global := &ConfigFile{
+			Rules: map[string]*RuleConfig{"gnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+		repo := &ConfigFile{
+			Rules: map[string]*RuleConfig{"rnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+
+		result := buildRules(global, repo)
+
+		// app defaults survive
+		if _, ok := result["ls"]; !ok {
+			t.Error("ls should survive")
+		}
+		// global survives
+		if _, ok := result["gnix"]; !ok {
+			t.Error("gnix should survive")
+		}
+		// repo present
+		if _, ok := result["rnix"]; !ok {
+			t.Error("rnix should be present")
+		}
+	})
+
+	t.Run("global overwrite, repo merge", func(t *testing.T) {
+		global := &ConfigFile{
+			OverwriteDefaults: boolPtr(true),
+			Rules:             map[string]*RuleConfig{"gnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+		repo := &ConfigFile{
+			Rules: map[string]*RuleConfig{"rnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+
+		result := buildRules(global, repo)
+
+		// app defaults dropped by global overwrite
+		if _, ok := result["ls"]; ok {
+			t.Error("ls should be dropped (global overwrote defaults)")
+		}
+		// global survives
+		if _, ok := result["gnix"]; !ok {
+			t.Error("gnix should survive")
+		}
+		// repo present (merged over the effective base, which is global-only)
+		if _, ok := result["rnix"]; !ok {
+			t.Error("rnix should be present")
+		}
+	})
+
+	t.Run("global merge, repo overwrite", func(t *testing.T) {
+		global := &ConfigFile{
+			Rules: map[string]*RuleConfig{"gnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+		repo := &ConfigFile{
+			OverwriteDefaults: boolPtr(true),
+			Rules:             map[string]*RuleConfig{"rnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+
+		result := buildRules(global, repo)
+
+		// app defaults dropped by repo overwrite
+		if _, ok := result["ls"]; ok {
+			t.Error("ls should be dropped (repo overwrote effective base)")
+		}
+		// global dropped by repo overwrite
+		if _, ok := result["gnix"]; ok {
+			t.Error("gnix should be dropped (repo overwrote effective base)")
+		}
+		// repo present
+		if _, ok := result["rnix"]; !ok {
+			t.Error("rnix should be present")
+		}
+	})
+
+	t.Run("global overwrite, repo overwrite", func(t *testing.T) {
+		global := &ConfigFile{
+			OverwriteDefaults: boolPtr(true),
+			Rules:             map[string]*RuleConfig{"gnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+		repo := &ConfigFile{
+			OverwriteDefaults: boolPtr(true),
+			Rules:             map[string]*RuleConfig{"rnix": {Decision: decisionPtr(rules.Allow)}},
+		}
+
+		result := buildRules(global, repo)
+
+		// app defaults dropped
+		if _, ok := result["ls"]; ok {
+			t.Error("ls should be dropped")
+		}
+		// global dropped by repo overwrite
+		if _, ok := result["gnix"]; ok {
+			t.Error("gnix should be dropped")
+		}
+		// repo present
+		if _, ok := result["rnix"]; !ok {
+			t.Error("rnix should be present")
+		}
+	})
+}
+
+func TestLoad_noConfig(t *testing.T) {
+	cfg, err := load("", t.TempDir())
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if cfg == nil {
 		t.Fatal("expected config, got nil")
 	}
-	// .crushout.yml takes precedence
-	if _, ok := cfg.Rules["foo"]; ok {
-		t.Error(".crushout.yml should take precedence over .crushout.yaml")
+	if !cfg.RtkRewrite {
+		t.Error("expected RtkRewrite to default to true")
+	}
+	if _, ok := cfg.Rules["ls"]; !ok {
+		t.Error("ls should be present from defaults")
 	}
 }
 
-func TestLoad_invalidYAML(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yml"), []byte("invalid: [yaml"), 0644); err != nil {
-		t.Fatal(err)
-	}
+func TestLoad_globalOnly(t *testing.T) {
+	globalDir := t.TempDir()
+	writeFile(t, globalDir, "crushout.yml", `rtk_rewrite: false
+rules:
+  gnix: allow
+`)
+	repoDir := t.TempDir()
 
-	_, err := Load(dir)
-	if err == nil {
-		t.Error("expected error for invalid YAML")
+	cfg, err := load(globalDir, repoDir)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if cfg.RtkRewrite {
+		t.Error("expected RtkRewrite to be false from global")
+	}
+	if _, ok := cfg.Rules["gnix"]; !ok {
+		t.Error("gnix should be present")
+	}
+	if _, ok := cfg.Rules["ls"]; !ok {
+		t.Error("ls should be preserved from defaults")
 	}
 }
 
-func TestLoad_invalidDecision(t *testing.T) {
-	dir := t.TempDir()
-	content := `rules:
-  ls: maybe`
-	if err := os.WriteFile(filepath.Join(dir, ".crushout.yml"), []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+func TestLoad_repoOnly(t *testing.T) {
+	repoDir := t.TempDir()
+	writeFile(t, repoDir, ".crushout.yml", `rtk_rewrite: false
+rules:
+  rnix: allow
+`)
 
-	_, err := Load(dir)
+	cfg, err := load("", repoDir)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if cfg.RtkRewrite {
+		t.Error("expected RtkRewrite to be false from repo")
+	}
+	if _, ok := cfg.Rules["rnix"]; !ok {
+		t.Error("rnix should be present")
+	}
+	if _, ok := cfg.Rules["ls"]; !ok {
+		t.Error("ls should be preserved from defaults")
+	}
+}
+
+func TestLoad_bothMerge(t *testing.T) {
+	globalDir := t.TempDir()
+	writeFile(t, globalDir, "crushout.yml", `rules:
+  gnix: allow
+`)
+	repoDir := t.TempDir()
+	writeFile(t, repoDir, ".crushout.yml", `rules:
+  rnix: allow
+`)
+
+	cfg, err := load(globalDir, repoDir)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if _, ok := cfg.Rules["gnix"]; !ok {
+		t.Error("gnix should be present from global")
+	}
+	if _, ok := cfg.Rules["rnix"]; !ok {
+		t.Error("rnix should be present from repo")
+	}
+	if _, ok := cfg.Rules["ls"]; !ok {
+		t.Error("ls should be preserved from defaults")
+	}
+}
+
+func TestLoad_repoRtkRewriteOverridesGlobal(t *testing.T) {
+	globalDir := t.TempDir()
+	writeFile(t, globalDir, "crushout.yml", `rtk_rewrite: false
+`)
+	repoDir := t.TempDir()
+	writeFile(t, repoDir, ".crushout.yml", `rtk_rewrite: true
+`)
+
+	cfg, err := load(globalDir, repoDir)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if !cfg.RtkRewrite {
+		t.Error("expected RtkRewrite to be true (repo wins)")
+	}
+}
+
+func TestLoad_globalUnsetRepoUnsetDefaultsTrue(t *testing.T) {
+	globalDir := t.TempDir()
+	writeFile(t, globalDir, "crushout.yml", `rules: {}
+`)
+	repoDir := t.TempDir()
+	writeFile(t, repoDir, ".crushout.yml", `rules: {}
+`)
+
+	cfg, err := load(globalDir, repoDir)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if !cfg.RtkRewrite {
+		t.Error("expected RtkRewrite to default to true when both unset")
+	}
+}
+
+func TestLoad_malformedGlobalErrors(t *testing.T) {
+	globalDir := t.TempDir()
+	writeFile(t, globalDir, "crushout.yml", "invalid: [yaml")
+	repoDir := t.TempDir()
+
+	_, err := load(globalDir, repoDir)
 	if err == nil {
-		t.Error("expected error for invalid decision value")
+		t.Error("expected error for malformed global config")
+	}
+}
+
+func TestLoad_malformedRepoErrors(t *testing.T) {
+	globalDir := t.TempDir()
+	repoDir := t.TempDir()
+	writeFile(t, repoDir, ".crushout.yml", "invalid: [yaml")
+
+	_, err := load(globalDir, repoDir)
+	if err == nil {
+		t.Error("expected error for malformed repo config")
 	}
 }
 
@@ -211,7 +584,7 @@ func TestToRules_basic(t *testing.T) {
 
 func TestToRules_nilDecision(t *testing.T) {
 	cfg := map[string]*RuleConfig{
-		"ls": {}, // no decision, no subcommands
+		"ls": {},
 	}
 
 	result := ToRules(cfg)
@@ -220,7 +593,6 @@ func TestToRules_nilDecision(t *testing.T) {
 	if !ok {
 		t.Fatal("expected ls rule")
 	}
-	// Default should be NoOpinion (zero value)
 	if ls.Default != rules.NoOpinion {
 		t.Error("expected ls.default to be NoOpinion for nil decision")
 	}
@@ -349,7 +721,7 @@ func TestMerge_deepMergeNestedSubcommands(t *testing.T) {
 		t.Error("git.remote.show should be overridden to NoOpinion")
 	}
 	if remote.Subcommands["add"].Default != rules.NoOpinion {
-		t.Error("git.remote.add should be preserved from base")
+		t.Error("git.remote.add should be preserved as NoOpinion")
 	}
 }
 
@@ -385,10 +757,7 @@ func TestMerge_preserveDenyFlagsWhenUserHasNone(t *testing.T) {
 		},
 	}
 	user := map[string]*rules.Rule{
-		"sed": {
-			Default: rules.Allow,
-			// DenyFlags not specified, should preserve base
-		},
+		"sed": {},
 	}
 
 	result := Merge(base, user)
@@ -441,60 +810,6 @@ func TestMerge_preserveMessageWhenUserHasNone(t *testing.T) {
 	}
 }
 
-func TestToRulesWithDefaults_noConfig(t *testing.T) {
-	result := ToRulesWithDefaults(nil)
-	if result == nil {
-		t.Fatal("expected non-nil result for nil config")
-	}
-	if len(result) == 0 {
-		t.Error("nil config should return non-empty rules")
-	}
-}
-
-func TestToRulesWithDefaults_overwriteTrue(t *testing.T) {
-	cfg := &Config{
-		OverwriteDefaults: true,
-		Rules: map[string]*RuleConfig{
-			"nix": {Decision: decisionPtr(rules.NoOpinion)},
-		},
-	}
-
-	result := ToRulesWithDefaults(cfg)
-
-	if _, ok := result["ls"]; ok {
-		t.Error("overwrite=true should drop default rules like ls")
-	}
-	nix, ok := result["nix"]
-	if !ok {
-		t.Fatal("nix should be present")
-	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("nix.default should be NoOpinion")
-	}
-}
-
-func TestToRulesWithDefaults_merge(t *testing.T) {
-	cfg := &Config{
-		OverwriteDefaults: false,
-		Rules: map[string]*RuleConfig{
-			"nix": {Decision: decisionPtr(rules.NoOpinion)},
-		},
-	}
-
-	result := ToRulesWithDefaults(cfg)
-
-	if _, ok := result["ls"]; !ok {
-		t.Error("ls should be preserved from defaults")
-	}
-	nix, ok := result["nix"]
-	if !ok {
-		t.Fatal("nix should be present")
-	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("nix.default should be NoOpinion")
-	}
-}
-
 func TestDeepCopyRule(t *testing.T) {
 	orig := &rules.Rule{
 		Default:   rules.Allow,
@@ -507,18 +822,16 @@ func TestDeepCopyRule(t *testing.T) {
 
 	copy_ := deepCopyRule(orig)
 
-	// Verify it's a separate copy
 	if copy_ == orig {
 		t.Error("deepCopyRule should return a new instance")
 	}
 	if copy_.Subcommands["sub"] == orig.Subcommands["sub"] {
 		t.Error("Subcommands map should be deep copied")
 	}
-	if len(copy_.DenyFlags) != len(orig.DenyFlags) || copy_.DenyFlags[0] != orig.DenyFlags[0] {
+	if len(copy_.DenyFlags) != len(orig.DenyFlags) || copy_.DenyFlags[0] != "-i" {
 		t.Error("DenyFlags slice should be deep copied with correct values")
 	}
 
-	// Verify values are correct
 	if copy_.Default != rules.Allow || copy_.DenyFlags[0] != "-i" || copy_.Message != "test message" || copy_.Subcommands["sub"].Default != rules.NoOpinion {
 		t.Error("copied values should match original")
 	}

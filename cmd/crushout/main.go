@@ -38,19 +38,17 @@ func main() {
 	}
 	homeDir, _ := os.UserHomeDir()
 
-	// Load custom config if present
-	ruleSet := rules.Default
+	// Load custom config (global + repo, merged with built-in defaults).
 	cfg, err := config.Load(rootDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not parse user config: %v\n", err)
-	} else if cfg != nil {
-		ruleSet = config.ToRulesWithDefaults(cfg)
+		cfg = config.Default()
 	}
 
 	c := &checker.Checker{
 		RootDir: rootDir,
 		HomeDir: homeDir,
-		Rules:   ruleSet,
+		Rules:   cfg.Rules,
 	}
 
 	d, reason, err := c.Check(input.Command())
@@ -60,7 +58,7 @@ func main() {
 	}
 
 	var rewritten string
-	rtkEnabled := cfg == nil || cfg.RtkRewrite
+	rtkEnabled := cfg.RtkRewrite
 	if d != rules.Deny && rtkEnabled {
 		if rw, ok := rewrite.TryRtkRewrite(input.Command()); ok {
 			rewritten = rw

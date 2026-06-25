@@ -39,11 +39,13 @@ Commands are rejected from auto-approval (not denied, just not fast-tracked) if 
 
 If [rtk](https://github.com/rtk-ai/rtk) is installed in `$PATH`, crushout passes non-denied commands through `rtk rewrite` for Crush or Claude Code to run instead.
 
-This is enabled by default. Disable it in `.crushout.yml`:
+This is enabled by default. Disable it in your global or repo config file:
 
 ```yaml
 rtk_rewrite: false
 ```
+
+The repo value overrides the global one.
 
 The rewrite is invisible to the checker as it runs after the allow/deny decision. If `rtk` is not installed, the command passes through unchanged.
 
@@ -209,9 +211,14 @@ Resolution walks arguments left-to-right:
 2. If an arg matches a `Subcommands` key, descend into that rule
 3. When no deeper match is found, use `Default`
 
-## Custom config file
+## Config files
 
-Instead of editing the source, you can drop `.crushout.yml` or `.crushout.yaml` in your project root. crushout looks for it in the `cwd` passed by the hook (typically the repo root).
+crushout reads two config layers, merged in order (later layers win):
+
+1. **Global**: `$XDG_CONFIG_HOME/crushout/crushout.yml` (or `.yaml`). Falls back to `$HOME/.config/crushout/crushout.yml` if `XDG_CONFIG_HOME` is unset. Use this for personal defaults across all projects.
+2. **Repo**: `.crushout.yml` (or `.yaml`) in the project root (the `cwd` passed by the hook, typically the repo root). Use this for project-specific rules.
+
+If neither file exists, the built-in defaults are used. A malformed file in either layer causes an error and crushout falls back to defaults.
 
 ### YAML format
 
@@ -250,9 +257,12 @@ The string form (`allow`, `deny`, or `prompt`) is equivalent to `{decision: <val
 
 ### Merge behavior
 
-When `overwrite_defaults: false` (the default), user rules are **deep-merged** with the built-in rules. Your values win where they differ, but anything you omit is inherited from the defaults.
+Each config layer is merged over the accumulated base (built-in defaults → global → repo). Within a layer:
 
-When `overwrite_defaults: true`, only the rules you specify are active; the built-ins are ignored entirely.
+- **`overwrite_defaults: false`** (or unset): the layer is **deep-merged** over the base. Your values win where they differ, but anything you omit is inherited.
+- **`overwrite_defaults: true`**: the layer **replaces** the accumulated base entirely. Only the rules you specify are active.
+
+Because layers build on each other, a `overwrite_defaults: true` in the global layer drops built-ins that no later (repo) layer can recover. Use it carefully in global config.
 
 ### Fields
 

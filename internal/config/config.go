@@ -9,10 +9,34 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the .crushout.yml configuration.
+// Config is the fully resolved configuration returned to callers.
+// All scalar fields have been resolved across layers and Rules has been
+// merged with the built-in defaults.
 type Config struct {
-	RtkRewrite        bool                   `yaml:"rtk_rewrite"`
-	OverwriteDefaults bool                   `yaml:"overwrite_defaults"`
+	RtkRewrite bool
+	Rules      map[string]*rules.Rule
+}
+
+// Default returns a config with default values.
+func Default() *Config {
+	return &Config{
+		RtkRewrite: true,
+		Rules:      deepCopyRules(rules.Default),
+	}
+}
+
+// repoConfigNames are the filenames searched for in a project root.
+var repoConfigNames = []string{".crushout.yml", ".crushout.yaml"}
+
+// globalConfigNames are the filenames searched for in the user config dir.
+var globalConfigNames = []string{"crushout.yml", "crushout.yaml"}
+
+// ConfigFile is the raw YAML representation of a single config file.
+// It is used while merging layers: scalar fields are *bool so that an
+// unset value can be distinguished from an explicit one.
+type ConfigFile struct {
+	RtkRewrite        *bool                  `yaml:"rtk_rewrite"`
+	OverwriteDefaults *bool                  `yaml:"overwrite_defaults"`
 	Rules             map[string]*RuleConfig `yaml:"rules"`
 }
 
@@ -58,11 +82,11 @@ func (rc *RuleConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 }
 
-// Load reads .crushout.yml or .crushout.yaml from dir.
-// Returns (nil, nil) if no config file exists.
-// Returns an error if the file exists but is malformed.
-func Load(dir string) (*Config, error) {
-	for _, name := range []string{".crushout.yml", ".crushout.yaml"} {
+// loadFirst reads the first existing config file from dir, trying names in
+// order. Returns (nil, nil) if no file exists.
+// Returns an error if a file exists but is malformed.
+func loadFirst(dir string, names []string) (*ConfigFile, error) {
+	for _, name := range names {
 		path := filepath.Join(dir, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -72,16 +96,101 @@ func Load(dir string) (*Config, error) {
 			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 
-		var cfg Config
-		cfg.RtkRewrite = true
-		if err := yaml.Unmarshal(data, &cfg); err != nil {
+		var cf ConfigFile
+		if err := yaml.Unmarshal(data, &cf); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", path, err)
 		}
 
-		return &cfg, nil
+		return &cf, nil
 	}
 
 	return nil, nil
+}
+
+// load reads global and repo config files, merges them, and returns the
+// resolved Config. Either directory may be empty (skipped).
+func load(globalDir, repoDir string) (*Config, error) {
+	var (
+		global, repo *ConfigFile
+		err          error
+	)
+
+	if globalDir != "" {
+		global, err = loadFirst(globalDir, globalConfigNames)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	repo, err = loadFirst(repoDir, repoConfigNames)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Config{
+		RtkRewrite: resolveRtkRewrite(global, repo),
+		Rules:      buildRules(global, repo),
+	}, nil
+}
+
+// Load resolves configuration from two layers, merged with the repo config
+// taking precedence over the user (global) config:
+//
+//   - global: $XDG_CONFIG_HOME/crushout/crushout.{yml,yaml}
+//   - repo:   <rootDir>/.crushout.{yml,yaml}
+//
+// It returns a fully resolved *Config (always non-nil on success) with Rules
+// already merged with the built-in defaults. A malformed file in either layer
+// causes an error.
+func Load(rootDir string) (*Config, error) {
+	return load(userConfigDir(), rootDir)
+}
+
+// userConfigDir returns the global config directory following the XDG base
+// directory specification via os.UserConfigDir (which falls back to
+// $HOME/.config). Returns "" if it cannot be determined.
+func userConfigDir() string {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(base, "crushout")
+}
+
+// resolveRtkRewrite resolves rtk_rewrite across layers: repo wins, then global,
+// then defaults to true.
+func resolveRtkRewrite(global, repo *ConfigFile) bool {
+	if repo != nil && repo.RtkRewrite != nil {
+		return *repo.RtkRewrite
+	}
+	if global != nil && global.RtkRewrite != nil {
+		return *global.RtkRewrite
+	}
+	return true
+}
+
+// buildRules builds the final rule set by applying each layer in sequence over
+// the built-in defaults. Within a layer, overwrite_defaults: true replaces the
+// effective base entirely; otherwise the layer is deep-merged over it.
+//
+// Layer order (each builds on the previous): defaults -> global -> repo.
+func buildRules(global, repo *ConfigFile) map[string]*rules.Rule {
+	base := deepCopyRules(rules.Default)
+	if global != nil {
+		base = applyLayer(base, global)
+	}
+	if repo != nil {
+		base = applyLayer(base, repo)
+	}
+	return base
+}
+
+// applyLayer applies a single config layer over base.
+func applyLayer(base map[string]*rules.Rule, cf *ConfigFile) map[string]*rules.Rule {
+	if cf.OverwriteDefaults != nil && *cf.OverwriteDefaults {
+		return ToRules(cf.Rules)
+	}
+	return Merge(base, ToRules(cf.Rules))
 }
 
 // ToRules converts a map of RuleConfig to the runtime rules map.
@@ -91,20 +200,6 @@ func ToRules(cfg map[string]*RuleConfig) map[string]*rules.Rule {
 		result[name] = rc.toRule()
 	}
 	return result
-}
-
-// ToRulesWithDefaults merges cfg with rules.Default.
-// If cfg.OverwriteDefaults is true, cfg.Rules replaces the defaults entirely.
-// Otherwise, cfg.Rules is deep-merged over rules.Default with user values winning.
-func ToRulesWithDefaults(cfg *Config) map[string]*rules.Rule {
-	if cfg == nil {
-		return rules.Default
-	}
-	if cfg.OverwriteDefaults {
-		return ToRules(cfg.Rules)
-	}
-	userRules := ToRules(cfg.Rules)
-	return Merge(rules.Default, userRules)
 }
 
 // Merge deep-merges userRules over baseRules.
