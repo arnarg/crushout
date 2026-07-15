@@ -146,7 +146,7 @@ Or use a full path in either:
 | `git push` | 🔒 prompt | mutable subcommand |
 | `git commit -m 'fix'` | 🔒 prompt | mutable subcommand |
 | `git branch new-feature` | 🔒 prompt | `branch` without list flag |
-| `git branch -D old` | 🔒 prompt | `-D` in deny flags |
+| `git branch -D old` | 🔒 prompt | `-D` in prompt flags |
 | `git tag v1.0.0` | 🔒 prompt | `tag` without `-l` |
 | `git stash` | 🔒 prompt | bare `stash` = push |
 | `git -C /tmp status` | 🔒 prompt | `-C` is denied |
@@ -189,15 +189,16 @@ Edit `internal/rules/defaults.go`. The rule type is recursive:
 ```go
 var Default = map[string]*Rule{
     "my-tool": {
-        Default:   rules.Allow,                    // allow unknown subcommands
-        DenyFlags: []string{"--dangerous"},        // prompt on these flags
+        Default:      rules.Allow,                 // allow unknown subcommands
+        PromptFlags:  []string{"--dangerous"},     // prompt on these flags
+        AllowFlags:   []string{"-l", "-d", "-s"},  // only these flags are safe
         Subcommands: map[string]*Rule{
             "read":  {Default: rules.Allow},
-            "write": {Default: rules.NoOpinion},   // prompt
+            "write": {Default: rules.Prompt},
             "db": {
                 Subcommands: map[string]*Rule{
-                    "migrate": {Default: rules.NoOpinion},
-                    "seed":    {Default: rules.NoOpinion},
+                    "migrate": {Default: rules.Prompt},
+                    "seed":    {Default: rules.Prompt},
                 },
             },
         },
@@ -207,9 +208,10 @@ var Default = map[string]*Rule{
 
 Resolution walks arguments left-to-right:
 
-1. `DenyFlags` are checked at each level against all remaining args
-2. If an arg matches a `Subcommands` key, descend into that rule
-3. When no deeper match is found, use `Default`
+1. `PromptFlags` are checked at each level against all remaining args. If any arg matches, the result is `prompt`.
+2. `AllowFlags` are checked at each level against all remaining args starting with `-`. If any flag is not in the allow list, the result is `prompt`.
+3. If an arg matches a `Subcommands` key, descend into that rule
+4. When no deeper match is found, use `Default`
 
 ## Config files
 
@@ -273,7 +275,8 @@ Because layers build on each other, a `overwrite_defaults: true` in the global l
 | `rules` | map | Map of command name → rule. |
 | `rules.*` | string or map | Shorthand (`allow`, `deny`, `prompt`) or full rule mapping. |
 | `rules.*.decision` | string | Decision for unknown subcommands: `allow`, `deny`, or `prompt`. Defaults to `prompt` if not set. |
-| `rules.*.deny_flags` | []string | Flags that always require confirmation. |
+| `rules.*.prompt_flags` | []string | Flags that always trigger a prompt (blacklist). |
+| `rules.*.allow_flags` | []string | If set, any flag-like arg (`-` prefix) not in this list triggers a prompt (whitelist). |
 | `rules.*.message` | string | Custom message shown when denied. Only used with `decision: deny`. |
 | `rules.*.subcommands` | map | Recursive map of subcommand name → rule. |
 

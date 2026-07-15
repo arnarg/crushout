@@ -43,7 +43,8 @@ type ConfigFile struct {
 // RuleConfig is a rule as specified in YAML.
 type RuleConfig struct {
 	Decision    *Decision              `yaml:"decision"`
-	DenyFlags   []string               `yaml:"deny_flags"`
+	PromptFlags []string               `yaml:"prompt_flags"`
+	AllowFlags  []string               `yaml:"allow_flags"`
 	Message     string                 `yaml:"message"`
 	Subcommands map[string]*RuleConfig `yaml:"subcommands"`
 }
@@ -223,7 +224,8 @@ func (rc *RuleConfig) toRule() *rules.Rule {
 		r.Default = rules.Decision(*rc.Decision)
 		r.DefaultExplicit = true
 	}
-	r.DenyFlags = rc.DenyFlags
+	r.PromptFlags = rc.PromptFlags
+	r.AllowFlags = rc.AllowFlags
 	r.Message = rc.Message
 	if len(rc.Subcommands) > 0 {
 		r.Subcommands = make(map[string]*rules.Rule, len(rc.Subcommands))
@@ -235,12 +237,14 @@ func (rc *RuleConfig) toRule() *rules.Rule {
 }
 
 // mergeRule merges userRule into baseRule.
-// User values win: Default (if explicitly set), DenyFlags, Message, and Subcommands are merged recursively.
+// User values win: Default (if explicitly set), PromptFlags, AllowFlags, Message,
+// and Subcommands are merged recursively.
 func mergeRule(base, user *rules.Rule) *rules.Rule {
 	result := &rules.Rule{
-		Default:   base.Default,
-		DenyFlags: base.DenyFlags,
-		Message:   base.Message,
+		Default:     base.Default,
+		PromptFlags: base.PromptFlags,
+		AllowFlags:  base.AllowFlags,
+		Message:     base.Message,
 	}
 	if base.Subcommands != nil {
 		result.Subcommands = deepCopyRules(base.Subcommands)
@@ -249,8 +253,11 @@ func mergeRule(base, user *rules.Rule) *rules.Rule {
 	if user.DefaultExplicit {
 		result.Default = user.Default
 	}
-	if len(user.DenyFlags) > 0 {
-		result.DenyFlags = user.DenyFlags
+	if len(user.PromptFlags) > 0 {
+		result.PromptFlags = user.PromptFlags
+	}
+	if len(user.AllowFlags) > 0 {
+		result.AllowFlags = user.AllowFlags
 	}
 	if user.Message != "" {
 		result.Message = user.Message
@@ -292,7 +299,8 @@ func deepCopyRule(src *rules.Rule) *rules.Rule {
 	dst := &rules.Rule{
 		Default:         src.Default,
 		DefaultExplicit: src.DefaultExplicit,
-		DenyFlags:       append([]string(nil), src.DenyFlags...),
+		PromptFlags:     append([]string(nil), src.PromptFlags...),
+		AllowFlags:      append([]string(nil), src.AllowFlags...),
 		Message:         src.Message,
 	}
 	if len(src.Subcommands) > 0 {

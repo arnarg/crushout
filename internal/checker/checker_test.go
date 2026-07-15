@@ -223,12 +223,12 @@ func TestCheck_GitConfigGet(t *testing.T) {
 	}
 }
 
-// ── Failure cases: Check returns NoOpinion ────────────────
+// ── Failure cases: Check returns Prompt ────────────────
 
 func TestCheck_Rm(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("rm -rf /")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("rm should be no-opinion")
 	}
 }
@@ -236,7 +236,7 @@ func TestCheck_Rm(t *testing.T) {
 func TestCheck_SudoRm(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("sudo rm -rf /")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("sudo should be no-opinion")
 	}
 }
@@ -244,7 +244,7 @@ func TestCheck_SudoRm(t *testing.T) {
 func TestCheck_GitPush(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git push")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git push should be no-opinion")
 	}
 }
@@ -252,7 +252,7 @@ func TestCheck_GitPush(t *testing.T) {
 func TestCheck_GitPushOrigin(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git push origin main")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git push origin main should be no-opinion")
 	}
 }
@@ -260,7 +260,7 @@ func TestCheck_GitPushOrigin(t *testing.T) {
 func TestCheck_GitCommit(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git commit -m 'fix'")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git commit should be no-opinion")
 	}
 }
@@ -268,7 +268,7 @@ func TestCheck_GitCommit(t *testing.T) {
 func TestCheck_GitCheckout(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git checkout -b feature")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git checkout should be no-opinion")
 	}
 }
@@ -276,7 +276,7 @@ func TestCheck_GitCheckout(t *testing.T) {
 func TestCheck_GitRemoteAdd(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git remote add origin git@github.com:user/repo.git")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git remote add should be no-opinion")
 	}
 }
@@ -284,7 +284,7 @@ func TestCheck_GitRemoteAdd(t *testing.T) {
 func TestCheck_GitBranchDelete(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git branch -D old-branch")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git branch -D should be no-opinion")
 	}
 }
@@ -292,7 +292,7 @@ func TestCheck_GitBranchDelete(t *testing.T) {
 func TestCheck_GitBranchCreate(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git branch new-feature")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git branch new-feature should be no-opinion")
 	}
 }
@@ -300,7 +300,7 @@ func TestCheck_GitBranchCreate(t *testing.T) {
 func TestCheck_GitTagCreate(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git tag v1.0.0")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git tag v1.0.0 should be no-opinion")
 	}
 }
@@ -308,7 +308,7 @@ func TestCheck_GitTagCreate(t *testing.T) {
 func TestCheck_GitStashBare(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git stash")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git stash (bare) should be no-opinion")
 	}
 }
@@ -316,7 +316,7 @@ func TestCheck_GitStashBare(t *testing.T) {
 func TestCheck_GitStashPop(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git stash pop")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git stash pop should be no-opinion")
 	}
 }
@@ -324,7 +324,7 @@ func TestCheck_GitStashPop(t *testing.T) {
 func TestCheck_GitC(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git -C /tmp status")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git -C should be no-opinion")
 	}
 }
@@ -332,7 +332,7 @@ func TestCheck_GitC(t *testing.T) {
 func TestCheck_GitConfigGlobal(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git config --global user.name New")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("git config --global should be no-opinion")
 	}
 }
@@ -340,7 +340,7 @@ func TestCheck_GitConfigGlobal(t *testing.T) {
 func TestCheck_FindExec(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("find . -name '*.go' -exec rm {} \\;")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("find -exec should be no-opinion")
 	}
 }
@@ -348,7 +348,7 @@ func TestCheck_FindExec(t *testing.T) {
 func TestCheck_SedInPlace(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("sed -i 's/old/new/g' file.txt")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("sed -i should be no-opinion")
 	}
 }
@@ -356,7 +356,7 @@ func TestCheck_SedInPlace(t *testing.T) {
 func TestCheck_Make(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("make build")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("make should be no-opinion")
 	}
 }
@@ -373,7 +373,7 @@ func TestCheck_Docker(t *testing.T) {
 func TestCheck_DockerRun(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("docker run nginx")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("docker run should be no-opinion")
 	}
 }
@@ -381,7 +381,7 @@ func TestCheck_DockerRun(t *testing.T) {
 func TestCheck_Npm(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("npm install")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("npm should be no-opinion")
 	}
 }
@@ -389,7 +389,7 @@ func TestCheck_Npm(t *testing.T) {
 func TestCheck_Python(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("python -c 'import os; os.remove(\"x\")'")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("python should be no-opinion")
 	}
 }
@@ -397,7 +397,7 @@ func TestCheck_Python(t *testing.T) {
 func TestCheck_Curl(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("curl https://example.com")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("curl should be no-opinion")
 	}
 }
@@ -413,7 +413,7 @@ func TestCheck_GoBuild(t *testing.T) {
 func TestCheck_GoModTidy(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("go mod tidy")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("go mod tidy should be no-opinion")
 	}
 }
@@ -421,7 +421,7 @@ func TestCheck_GoModTidy(t *testing.T) {
 func TestCheck_GoTestC(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("go test -c ./...")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("go test -c should be no-opinion")
 	}
 }
@@ -429,15 +429,39 @@ func TestCheck_GoTestC(t *testing.T) {
 func TestCheck_UnknownCommand(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("some_unknown_command --foo")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("unknown command should be no-opinion")
+	}
+}
+
+func TestCheck_GoFmtReadOnly(t *testing.T) {
+	tests := []struct {
+		cmd  string
+		want rules.Decision
+	}{
+		{"gofmt -l .", rules.Allow},
+		{"gofmt -d file.go", rules.Allow},
+		{"gofmt -s file.go", rules.Allow},
+		{"gofmt file.go", rules.Allow},
+		{"gofmt -w file.go", rules.Prompt},
+		{"gofumpt -l .", rules.Allow},
+		{"goimports -l .", rules.Allow},
+	}
+	for _, tt := range tests {
+		t.Run(tt.cmd, func(t *testing.T) {
+			c := newTestChecker()
+			d, _, _ := c.Check(tt.cmd)
+			if d != tt.want {
+				t.Errorf("expected %v, got %v", tt.want, d)
+			}
+		})
 	}
 }
 
 func TestCheck_CommandSubstitution(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("echo $(whoami)")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("command substitution should be no-opinion")
 	}
 }
@@ -445,7 +469,7 @@ func TestCheck_CommandSubstitution(t *testing.T) {
 func TestCheck_Subshell(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("(cd /tmp && ls)")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("subshell should be no-opinion")
 	}
 }
@@ -466,7 +490,7 @@ func TestCheck_CDEscapesRoot(t *testing.T) {
 	for _, input := range tests {
 		t.Run(input, func(t *testing.T) {
 			d, _, _ := c.Check(input)
-			if d != rules.NoOpinion {
+			if d != rules.Prompt {
 				t.Error("cd escaping root should be no-opinion")
 			}
 		})
@@ -495,7 +519,7 @@ func TestCheck_CDTilde(t *testing.T) {
 	c := newTestChecker()
 	// ~ resolves to /home/user which is NOT /home/user/project
 	d, _, _ := c.Check("cd ~ && ls")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("cd ~ should escape root")
 	}
 }
@@ -513,7 +537,7 @@ func TestCheck_CDTildeSubdir(t *testing.T) {
 func TestCheck_CDDynamicPath(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("cd $DIR && ls")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("cd $DIR should be no-opinion (dynamic)")
 	}
 }
@@ -521,7 +545,7 @@ func TestCheck_CDDynamicPath(t *testing.T) {
 func TestCheck_CDBack(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("cd - && ls")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("cd - should be no-opinion (dynamic)")
 	}
 }
@@ -542,7 +566,7 @@ func TestCheck_CDBare_HomeWithinRoot(t *testing.T) {
 func TestCheck_CDBare_HomeOutsideRoot(t *testing.T) {
 	c := newTestChecker() // root=/home/user/project, home=/home/user
 	d, _, _ := c.Check("cd && ls")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("cd (bare) should be no-opinion when home escapes root")
 	}
 }
@@ -552,7 +576,7 @@ func TestCheck_CDBare_HomeOutsideRoot(t *testing.T) {
 func TestCheck_GoodThenBad(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("git status && rm -rf /")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("chain with one mutable command should be no-opinion")
 	}
 }
@@ -560,7 +584,7 @@ func TestCheck_GoodThenBad(t *testing.T) {
 func TestCheck_LsThenGitPush(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("ls && git push")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("chain with git push should be no-opinion")
 	}
 }
@@ -568,7 +592,7 @@ func TestCheck_LsThenGitPush(t *testing.T) {
 func TestCheck_OutputRedirect(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("echo hello > file.txt")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("output redirect should be no-opinion")
 	}
 }
@@ -576,7 +600,7 @@ func TestCheck_OutputRedirect(t *testing.T) {
 func TestCheck_AppendRedirect(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("echo hello >> file.txt")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("append redirect should be no-opinion")
 	}
 }
@@ -584,7 +608,7 @@ func TestCheck_AppendRedirect(t *testing.T) {
 func TestCheck_DupToFile(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("echo hello >& /tmp/file")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("redirect to file should be no-opinion")
 	}
 }
@@ -610,7 +634,7 @@ func TestCheck_InputRedirect(t *testing.T) {
 func TestCheck_EnvCommand(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("env FOO=bar rm -rf /")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("env with command should be no-opinion")
 	}
 }
@@ -721,7 +745,7 @@ func TestCheck_DenyWithSubcommandOverride(t *testing.T) {
 func TestCheck_Empty(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("empty input should be no-opinion")
 	}
 }
@@ -729,7 +753,7 @@ func TestCheck_Empty(t *testing.T) {
 func TestCheck_Whitespace(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("   ")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("whitespace input should be no-opinion")
 	}
 }
@@ -737,7 +761,7 @@ func TestCheck_Whitespace(t *testing.T) {
 func TestCheck_InvalidBash(t *testing.T) {
 	c := newTestChecker()
 	d, _, _ := c.Check("if if if")
-	if d != rules.NoOpinion {
+	if d != rules.Prompt {
 		t.Error("invalid bash should be no-opinion")
 	}
 }

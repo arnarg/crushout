@@ -65,8 +65,8 @@ rules:
 	if !ok {
 		t.Fatal("expected nix rule")
 	}
-	if nix.Decision == nil || *nix.Decision != Decision(rules.NoOpinion) {
-		t.Error("expected nix.decision to be prompt (NoOpinion)")
+	if nix.Decision == nil || *nix.Decision != Decision(rules.Prompt) {
+		t.Error("expected nix.decision to be prompt (Prompt)")
 	}
 	build, ok := nix.Subcommands["build"]
 	if !ok {
@@ -110,7 +110,7 @@ func TestLoadFirst_yamlShorthand(t *testing.T) {
 	}
 
 	kubectl := cf.Rules["kubectl"]
-	if kubectl == nil || kubectl.Decision == nil || *kubectl.Decision != Decision(rules.NoOpinion) {
+	if kubectl == nil || kubectl.Decision == nil || *kubectl.Decision != Decision(rules.Prompt) {
 		t.Error("expected kubectl to be prompt")
 	}
 
@@ -227,7 +227,7 @@ func TestApplyLayer_mergeMode(t *testing.T) {
 	cf := &ConfigFile{
 		OverwriteDefaults: boolPtr(false),
 		Rules: map[string]*RuleConfig{
-			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+			"nix": {Decision: decisionPtr(rules.Prompt)},
 		},
 	}
 
@@ -240,8 +240,8 @@ func TestApplyLayer_mergeMode(t *testing.T) {
 	if !ok {
 		t.Fatal("nix should be present")
 	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("nix.default should be NoOpinion")
+	if nix.Default != rules.Prompt {
+		t.Error("nix.default should be Prompt")
 	}
 }
 
@@ -249,7 +249,7 @@ func TestApplyLayer_overwriteMode(t *testing.T) {
 	cf := &ConfigFile{
 		OverwriteDefaults: boolPtr(true),
 		Rules: map[string]*RuleConfig{
-			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+			"nix": {Decision: decisionPtr(rules.Prompt)},
 		},
 	}
 
@@ -262,15 +262,15 @@ func TestApplyLayer_overwriteMode(t *testing.T) {
 	if !ok {
 		t.Fatal("nix should be present")
 	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("nix.default should be NoOpinion")
+	if nix.Default != rules.Prompt {
+		t.Error("nix.default should be Prompt")
 	}
 }
 
 func TestApplyLayer_unspecifiedDefaultsToMerge(t *testing.T) {
 	cf := &ConfigFile{
 		Rules: map[string]*RuleConfig{
-			"nix": {Decision: decisionPtr(rules.NoOpinion)},
+			"nix": {Decision: decisionPtr(rules.Prompt)},
 		},
 	}
 
@@ -557,7 +557,7 @@ func TestToRules_empty(t *testing.T) {
 func TestToRules_basic(t *testing.T) {
 	cfg := map[string]*RuleConfig{
 		"nix": {
-			Decision: decisionPtr(rules.NoOpinion),
+			Decision: decisionPtr(rules.Prompt),
 			Subcommands: map[string]*RuleConfig{
 				"build": {Decision: decisionPtr(rules.Allow)},
 			},
@@ -570,8 +570,8 @@ func TestToRules_basic(t *testing.T) {
 	if !ok {
 		t.Fatal("expected nix rule")
 	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("expected nix.default to be NoOpinion")
+	if nix.Default != rules.Prompt {
+		t.Error("expected nix.default to be Prompt")
 	}
 	build, ok := nix.Subcommands["build"]
 	if !ok {
@@ -593,8 +593,8 @@ func TestToRules_nilDecision(t *testing.T) {
 	if !ok {
 		t.Fatal("expected ls rule")
 	}
-	if ls.Default != rules.NoOpinion {
-		t.Error("expected ls.default to be NoOpinion for nil decision")
+	if ls.Default != rules.Prompt {
+		t.Error("expected ls.default to be Prompt for nil decision")
 	}
 }
 
@@ -634,8 +634,8 @@ func TestMerge_addNewRule(t *testing.T) {
 	if !ok {
 		t.Fatal("nix should be added from user")
 	}
-	if nix.Default != rules.NoOpinion {
-		t.Error("nix.default should be NoOpinion")
+	if nix.Default != rules.Prompt {
+		t.Error("nix.default should be Prompt")
 	}
 }
 
@@ -644,13 +644,13 @@ func TestMerge_overrideDefault(t *testing.T) {
 		"ls": {Default: rules.Allow},
 	}
 	user := map[string]*rules.Rule{
-		"ls": {Default: rules.NoOpinion, DefaultExplicit: true},
+		"ls": {Default: rules.Prompt, DefaultExplicit: true},
 	}
 
 	result := Merge(base, user)
 
-	if result["ls"].Default != rules.NoOpinion {
-		t.Error("user should win: ls.default should be NoOpinion")
+	if result["ls"].Default != rules.Prompt {
+		t.Error("user should win: ls.default should be Prompt")
 	}
 }
 
@@ -666,7 +666,7 @@ func TestMerge_deepMergeSubcommands(t *testing.T) {
 	user := map[string]*rules.Rule{
 		"git": {
 			Subcommands: map[string]*rules.Rule{
-				"status": newRuleWithDecision(rules.NoOpinion),
+				"status": newRuleWithDecision(rules.Prompt),
 				"fetch":  {},
 			},
 		},
@@ -675,14 +675,14 @@ func TestMerge_deepMergeSubcommands(t *testing.T) {
 	result := Merge(base, user)
 
 	git := result["git"]
-	if git.Default != rules.NoOpinion {
-		t.Error("git.default should remain NoOpinion")
+	if git.Default != rules.Prompt {
+		t.Error("git.default should remain Prompt")
 	}
 	if _, ok := git.Subcommands["push"]; !ok {
 		t.Error("git.push should be preserved from base")
 	}
-	if git.Subcommands["status"].Default != rules.NoOpinion {
-		t.Error("git.status should be overridden to NoOpinion")
+	if git.Subcommands["status"].Default != rules.Prompt {
+		t.Error("git.status should be overridden to Prompt")
 	}
 	if _, ok := git.Subcommands["fetch"]; !ok {
 		t.Error("git.fetch should be added from user")
@@ -707,7 +707,7 @@ func TestMerge_deepMergeNestedSubcommands(t *testing.T) {
 			Subcommands: map[string]*rules.Rule{
 				"remote": {
 					Subcommands: map[string]*rules.Rule{
-						"show": newRuleWithDecision(rules.NoOpinion),
+						"show": newRuleWithDecision(rules.Prompt),
 					},
 				},
 			},
@@ -717,43 +717,43 @@ func TestMerge_deepMergeNestedSubcommands(t *testing.T) {
 	result := Merge(base, user)
 
 	remote := result["git"].Subcommands["remote"]
-	if remote.Subcommands["show"].Default != rules.NoOpinion {
-		t.Error("git.remote.show should be overridden to NoOpinion")
+	if remote.Subcommands["show"].Default != rules.Prompt {
+		t.Error("git.remote.show should be overridden to Prompt")
 	}
-	if remote.Subcommands["add"].Default != rules.NoOpinion {
-		t.Error("git.remote.add should be preserved as NoOpinion")
+	if remote.Subcommands["add"].Default != rules.Prompt {
+		t.Error("git.remote.add should be preserved as Prompt")
 	}
 }
 
-func TestMerge_denyFlagsOverride(t *testing.T) {
+func TestMerge_promptFlagsOverride(t *testing.T) {
 	base := map[string]*rules.Rule{
 		"find": {
-			Default:   rules.Allow,
-			DenyFlags: []string{"-exec", "-delete"},
+			Default:     rules.Allow,
+			PromptFlags: []string{"-exec", "-delete"},
 		},
 	}
 	user := map[string]*rules.Rule{
 		"find": {
-			DenyFlags: []string{"-exec", "-fprint"},
+			PromptFlags: []string{"-exec", "-fprint"},
 		},
 	}
 
 	result := Merge(base, user)
 
 	find := result["find"]
-	if len(find.DenyFlags) != 2 {
-		t.Fatalf("expected 2 deny flags, got %d", len(find.DenyFlags))
+	if len(find.PromptFlags) != 2 {
+		t.Fatalf("expected 2 prompt flags, got %d", len(find.PromptFlags))
 	}
-	if find.DenyFlags[0] != "-exec" || find.DenyFlags[1] != "-fprint" {
-		t.Errorf("expected [-exec -fprint], got %v", find.DenyFlags)
+	if find.PromptFlags[0] != "-exec" || find.PromptFlags[1] != "-fprint" {
+		t.Errorf("expected [-exec -fprint], got %v", find.PromptFlags)
 	}
 }
 
-func TestMerge_preserveDenyFlagsWhenUserHasNone(t *testing.T) {
+func TestMerge_preservePromptFlagsWhenUserHasNone(t *testing.T) {
 	base := map[string]*rules.Rule{
 		"sed": {
-			Default:   rules.Allow,
-			DenyFlags: []string{"-i"},
+			Default:     rules.Allow,
+			PromptFlags: []string{"-i"},
 		},
 	}
 	user := map[string]*rules.Rule{
@@ -763,8 +763,8 @@ func TestMerge_preserveDenyFlagsWhenUserHasNone(t *testing.T) {
 	result := Merge(base, user)
 
 	sed := result["sed"]
-	if len(sed.DenyFlags) != 1 || sed.DenyFlags[0] != "-i" {
-		t.Errorf("expected [-i], got %v", sed.DenyFlags)
+	if len(sed.PromptFlags) != 1 || sed.PromptFlags[0] != "-i" {
+		t.Errorf("expected [-i], got %v", sed.PromptFlags)
 	}
 }
 
@@ -812,9 +812,9 @@ func TestMerge_preserveMessageWhenUserHasNone(t *testing.T) {
 
 func TestDeepCopyRule(t *testing.T) {
 	orig := &rules.Rule{
-		Default:   rules.Allow,
-		DenyFlags: []string{"-i"},
-		Message:   "test message",
+		Default:     rules.Allow,
+		PromptFlags: []string{"-i"},
+		Message:     "test message",
 		Subcommands: map[string]*rules.Rule{
 			"sub": {},
 		},
@@ -828,11 +828,11 @@ func TestDeepCopyRule(t *testing.T) {
 	if copy_.Subcommands["sub"] == orig.Subcommands["sub"] {
 		t.Error("Subcommands map should be deep copied")
 	}
-	if len(copy_.DenyFlags) != len(orig.DenyFlags) || copy_.DenyFlags[0] != "-i" {
-		t.Error("DenyFlags slice should be deep copied with correct values")
+	if len(copy_.PromptFlags) != len(orig.PromptFlags) || copy_.PromptFlags[0] != "-i" {
+		t.Error("PromptFlags slice should be deep copied with correct values")
 	}
 
-	if copy_.Default != rules.Allow || copy_.DenyFlags[0] != "-i" || copy_.Message != "test message" || copy_.Subcommands["sub"].Default != rules.NoOpinion {
+	if copy_.Default != rules.Allow || copy_.PromptFlags[0] != "-i" || copy_.Message != "test message" || copy_.Subcommands["sub"].Default != rules.Prompt {
 		t.Error("copied values should match original")
 	}
 }
@@ -841,5 +841,56 @@ func TestDeepCopyRules_nil(t *testing.T) {
 	result := deepCopyRules(nil)
 	if result != nil {
 		t.Error("nil input should return nil")
+	}
+}
+
+func TestMerge_allowFlagsOverride(t *testing.T) {
+	base := map[string]*rules.Rule{
+		"gofmt": {
+			Default:    rules.Allow,
+			AllowFlags: []string{"-l", "-d"},
+		},
+	}
+	user := map[string]*rules.Rule{
+		"gofmt": {
+			AllowFlags: []string{"-l", "-d", "-s"},
+		},
+	}
+
+	result := Merge(base, user)
+
+	gofmt := result["gofmt"]
+	if len(gofmt.AllowFlags) != 3 {
+		t.Fatalf("expected 3 allow flags, got %d", len(gofmt.AllowFlags))
+	}
+}
+
+func TestMerge_preserveAllowFlagsWhenUserHasNone(t *testing.T) {
+	base := map[string]*rules.Rule{
+		"gofmt": {
+			Default:    rules.Allow,
+			AllowFlags: []string{"-l", "-d"},
+		},
+	}
+	user := map[string]*rules.Rule{
+		"gofmt": {},
+	}
+
+	result := Merge(base, user)
+
+	gofmt := result["gofmt"]
+	if len(gofmt.AllowFlags) != 2 {
+		t.Errorf("expected allow flags preserved, got %v", gofmt.AllowFlags)
+	}
+}
+
+func TestDeepCopyRule_allowFlags(t *testing.T) {
+	orig := &rules.Rule{
+		AllowFlags: []string{"-l", "-d"},
+	}
+	copy_ := deepCopyRule(orig)
+	copy_.AllowFlags[0] = "-w"
+	if orig.AllowFlags[0] == "-w" {
+		t.Error("AllowFlags should be deep copied")
 	}
 }

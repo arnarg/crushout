@@ -16,16 +16,16 @@ type Checker struct {
 }
 
 // Check evaluates the input command string and returns a Decision.
-// Allow means auto-approve, Deny means hard block, NoOpinion means
+// Allow means auto-approve, Deny means hard block, Prompt means
 // let the normal permission prompt handle it.
 func (c *Checker) Check(input string) (rules.Decision, string, error) {
 	result, err := bash.Parse(input)
 	if err != nil {
-		return rules.NoOpinion, "", nil
+		return rules.Prompt, "", nil
 	}
 
 	if result.HasError || result.IsComplex || result.HasRedirect || len(result.Commands) == 0 {
-		return rules.NoOpinion, "", nil
+		return rules.Prompt, "", nil
 	}
 
 	final := rules.Allow
@@ -33,7 +33,7 @@ func (c *Checker) Check(input string) (rules.Decision, string, error) {
 	for _, cmd := range result.Commands {
 		if cmd.Name == "cd" {
 			if !c.isSafeCD(cmd, &cwd) {
-				return rules.NoOpinion, "", nil
+				return rules.Prompt, "", nil
 			}
 			continue
 		} else if cmd.Name == "rtk" && len(cmd.Args) > 0 {
@@ -51,8 +51,8 @@ func (c *Checker) Check(input string) (rules.Decision, string, error) {
 		switch d {
 		case rules.Deny:
 			return rules.Deny, msg, nil
-		case rules.NoOpinion:
-			final = rules.NoOpinion
+		case rules.Prompt:
+			final = rules.Prompt
 		}
 	}
 
@@ -65,12 +65,12 @@ func (c *Checker) checkCommand(cmd bash.Command) (rules.Decision, string) {
 		name = filepath.Base(name)
 	}
 	if strings.Contains(name, "$") || strings.Contains(name, "`") {
-		return rules.NoOpinion, ""
+		return rules.Prompt, ""
 	}
 
 	rule, exists := c.Rules[name]
 	if !exists {
-		return rules.NoOpinion, ""
+		return rules.Prompt, ""
 	}
 
 	d, msg := rule.Resolve(cmd.Args)

@@ -8,7 +8,7 @@ import (
 type Decision int
 
 const (
-	NoOpinion Decision = iota
+	Prompt Decision = iota
 	Allow
 	Deny
 )
@@ -20,9 +20,9 @@ func ParseDecision(s string) (Decision, error) {
 	case "deny":
 		return Deny, nil
 	case "prompt":
-		return NoOpinion, nil
+		return Prompt, nil
 	default:
-		return NoOpinion, fmt.Errorf("invalid decision %q (use allow, deny, or prompt)", s)
+		return Prompt, fmt.Errorf("invalid decision %q (use allow, deny, or prompt)", s)
 	}
 }
 
@@ -39,7 +39,8 @@ func (d Decision) String() string {
 
 type Rule struct {
 	Subcommands     map[string]*Rule `yaml:"subcommands,omitempty"`
-	DenyFlags       []string         `yaml:"deny_flags,omitempty"`
+	PromptFlags     []string         `yaml:"prompt_flags,omitempty"`
+	AllowFlags      []string         `yaml:"allow_flags,omitempty"`
 	Default         Decision         `yaml:"default"`
 	DefaultExplicit bool             `yaml:"-"`
 	Message         string           `yaml:"message,omitempty"`
@@ -56,9 +57,21 @@ func (r *Rule) Resolve(args []string) (Decision, string) {
 	remaining := args
 	for len(remaining) > 0 {
 		for _, arg := range remaining {
-			for _, flag := range current.DenyFlags {
+			for _, flag := range current.PromptFlags {
 				if arg == flag || strings.HasPrefix(arg, flag+"=") {
-					return NoOpinion, "denied flag"
+					return Prompt, "denied flag"
+				}
+			}
+			if len(current.AllowFlags) > 0 && strings.HasPrefix(arg, "-") {
+				allowed := false
+				for _, af := range current.AllowFlags {
+					if arg == af || strings.HasPrefix(arg, af+"=") {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					return Prompt, "unrecognized flag"
 				}
 			}
 		}

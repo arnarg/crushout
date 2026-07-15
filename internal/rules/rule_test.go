@@ -61,16 +61,16 @@ func TestRule_SubcommandFallbackToDefault(t *testing.T) {
 			"status": {Default: Allow},
 		},
 	}
-	// "clone" is not in subcommands, falls to Default (NoOpinion)
+	// "clone" is not in subcommands, falls to Default (Prompt)
 	if r.Allow([]string{"clone"}) {
 		t.Error("unknown git subcommand should fall to default (deny)")
 	}
 }
 
-func TestRule_DenyFlags(t *testing.T) {
+func TestRule_PromptFlags(t *testing.T) {
 	r := &Rule{
-		Default:   Allow,
-		DenyFlags: []string{"-i", "--in-place"},
+		Default:     Allow,
+		PromptFlags: []string{"-i", "--in-place"},
 	}
 	if !r.Allow([]string{"s/old/new/g", "file.txt"}) {
 		t.Error("sed without -i should be allowed")
@@ -83,12 +83,12 @@ func TestRule_DenyFlags(t *testing.T) {
 	}
 }
 
-func TestRule_DenyFlagsAtNestedLevel(t *testing.T) {
+func TestRule_PromptFlagsAtNestedLevel(t *testing.T) {
 	r := &Rule{
-		DenyFlags: []string{"-C", "--work-tree"},
+		PromptFlags: []string{"-C", "--work-tree"},
 		Subcommands: map[string]*Rule{
 			"branch": {
-				DenyFlags: []string{"-d", "-D", "--delete", "-m", "-M", "--move"},
+				PromptFlags: []string{"-d", "-D", "--delete", "-m", "-M", "--move"},
 				Subcommands: map[string]*Rule{
 					"-l":     {Default: Allow},
 					"--list": {Default: Allow},
@@ -100,10 +100,10 @@ func TestRule_DenyFlagsAtNestedLevel(t *testing.T) {
 		t.Error("git branch -l should be allowed")
 	}
 	if r.Allow([]string{"branch", "-D", "foo"}) {
-		t.Error("git branch -D should be denied by nested DenyFlags")
+		t.Error("git branch -D should be denied by nested PromptFlags")
 	}
 	if r.Allow([]string{"-C", "/tmp", "status"}) {
-		t.Error("git -C should be denied by top-level DenyFlags")
+		t.Error("git -C should be denied by top-level PromptFlags")
 	}
 }
 
@@ -164,7 +164,7 @@ func TestRule_ThreeLevels(t *testing.T) {
 func TestRule_FlagDenyBeforeSubcommand(t *testing.T) {
 	// git -C /tmp status → -C should be caught at top level
 	r := &Rule{
-		DenyFlags: []string{"-C"},
+		PromptFlags: []string{"-C"},
 		Subcommands: map[string]*Rule{
 			"status": {Default: Allow},
 		},
@@ -174,10 +174,10 @@ func TestRule_FlagDenyBeforeSubcommand(t *testing.T) {
 	}
 }
 
-func TestRule_FindDenyFlags(t *testing.T) {
+func TestRule_FindPromptFlags(t *testing.T) {
 	r := &Rule{
-		Default:   Allow,
-		DenyFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete"},
+		Default:     Allow,
+		PromptFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete"},
 	}
 	if !r.Allow([]string{".", "-name", "*.go"}) {
 		t.Error("find without -exec should be allowed")
@@ -220,10 +220,10 @@ func TestRule_StashNested(t *testing.T) {
 	}
 }
 
-func TestRule_DenyFlags_ExactMatch(t *testing.T) {
+func TestRule_PromptFlags_ExactMatch(t *testing.T) {
 	r := &Rule{
-		Default:   Allow,
-		DenyFlags: []string{"-c", "--coverprofile"},
+		Default:     Allow,
+		PromptFlags: []string{"-c", "--coverprofile"},
 	}
 	if !r.Allow([]string{"-count=1", "./..."}) {
 		t.Error("go test -count=1 should be allowed (-c should not match -count)")
@@ -239,10 +239,10 @@ func TestRule_DenyFlags_ExactMatch(t *testing.T) {
 	}
 }
 
-func TestRule_DenyFlags_EqualsSuffix(t *testing.T) {
+func TestRule_PromptFlags_EqualsSuffix(t *testing.T) {
 	r := &Rule{
-		Default:   Allow,
-		DenyFlags: []string{"--global"},
+		Default:     Allow,
+		PromptFlags: []string{"--global"},
 	}
 	if r.Allow([]string{"--global=value"}) {
 		t.Error("--global=value should be denied")
@@ -252,12 +252,12 @@ func TestRule_DenyFlags_EqualsSuffix(t *testing.T) {
 	}
 }
 
-func TestRule_GoTestDenyFlags(t *testing.T) {
+func TestRule_GoTestPromptFlags(t *testing.T) {
 	r := &Rule{
 		Subcommands: map[string]*Rule{
 			"test": {
-				Default:   Allow,
-				DenyFlags: []string{"-c", "--coverprofile"},
+				Default:     Allow,
+				PromptFlags: []string{"-c", "--coverprofile"},
 			},
 		},
 	}
@@ -269,10 +269,10 @@ func TestRule_GoTestDenyFlags(t *testing.T) {
 	}
 }
 
-func TestRule_ConfigDenyFlags(t *testing.T) {
+func TestRule_ConfigPromptFlags(t *testing.T) {
 	r := &Rule{
-		Default:   Allow,
-		DenyFlags: []string{"--global", "--system", "--file"},
+		Default:     Allow,
+		PromptFlags: []string{"--global", "--system", "--file"},
 	}
 	if !r.Allow([]string{"--get", "user.name"}) {
 		t.Error("git config --get should be allowed")
@@ -453,7 +453,7 @@ func TestDefaultRules_GitSubcommands(t *testing.T) {
 		{[]string{"remote", "remove", "origin"}, false},
 		{[]string{"submodule", "update"}, false},
 
-		// DenyFlags
+		// PromptFlags
 		{[]string{"-C", "/tmp", "status"}, false},
 		{[]string{"--work-tree", "/tmp", "status"}, false},
 		{[]string{"config", "--global", "user.name", "X"}, false},
@@ -683,5 +683,62 @@ func TestDefaultRules_UnknownCommand(t *testing.T) {
 	_, exists := Default["foobarbaz"]
 	if exists {
 		t.Error("unknown command should not exist in rules")
+	}
+}
+
+func TestRule_AllowFlags(t *testing.T) {
+	r := &Rule{
+		Default:    Allow,
+		AllowFlags: []string{"-l", "-d", "-s"},
+	}
+	if !r.Allow([]string{"-l", "file.go"}) {
+		t.Error("gofmt -l file.go should be allowed")
+	}
+	if !r.Allow([]string{"-d", "-s", "file.go"}) {
+		t.Error("gofmt -d -s file.go should be allowed")
+	}
+	if !r.Allow([]string{"file.go"}) {
+		t.Error("gofmt file.go (no flags) should be allowed")
+	}
+	if r.Allow([]string{"-w", "file.go"}) {
+		t.Error("gofmt -w file.go should be prompted (unrecognized flag)")
+	}
+}
+
+func TestRule_AllowFlags_EqualsSuffix(t *testing.T) {
+	r := &Rule{
+		Default:    Allow,
+		AllowFlags: []string{"-r"},
+	}
+	if !r.Allow([]string{"-r=a->b", "file.go"}) {
+		t.Error("-r=a->b should match allow flag -r")
+	}
+	if r.Allow([]string{"-x=1", "file.go"}) {
+		t.Error("-x=1 should not be allowed")
+	}
+}
+
+func TestDefaultRules_GoFmt(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		allowed bool
+	}{
+		{"gofmt_no_flags", []string{"file.go"}, true},
+		{"gofmt_list", []string{"-l", "."}, true},
+		{"gofmt_diff", []string{"-d", "file.go"}, true},
+		{"gofmt_simplify", []string{"-s", "file.go"}, true},
+		{"gofmt_combined", []string{"-l", "-s", "."}, true},
+		{"gofmt_write", []string{"-w", "file.go"}, false},
+		{"gofmt_unknown_flag", []string{"--unknown"}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := Default["gofmt"]
+			if rule.Allow(tt.args) != tt.allowed {
+				t.Errorf("gofmt Allow(%v) = %v, want %v", tt.args, !tt.allowed, tt.allowed)
+			}
+		})
 	}
 }

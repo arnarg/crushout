@@ -69,21 +69,21 @@ var Default = map[string]*Rule{
 
 	// Flag-dependent
 	"yq": {
-		Default:   Allow,
-		DenyFlags: []string{"-i", "--in-place"},
+		Default:     Allow,
+		PromptFlags: []string{"-i", "--in-place"},
 	},
 	"sed": {
-		Default:   Allow,
-		DenyFlags: []string{"-i", "--in-place"},
+		Default:     Allow,
+		PromptFlags: []string{"-i", "--in-place"},
 	},
 	"find": {
-		Default:   Allow,
-		DenyFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprint", "-fls"},
+		Default:     Allow,
+		PromptFlags: []string{"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprint", "-fls"},
 	},
 
 	// ── Nested subcommands ──────────────────────────────────
 	"git": {
-		DenyFlags: []string{"-C", "--work-tree", "--git-dir"},
+		PromptFlags: []string{"-C", "--work-tree", "--git-dir"},
 		Subcommands: map[string]*Rule{
 			"status":        {Default: Allow},
 			"diff":          {Default: Allow},
@@ -118,7 +118,7 @@ var Default = map[string]*Rule{
 				},
 			},
 			"branch": {
-				DenyFlags: []string{"-d", "-D", "--delete", "-m", "-M", "--move"},
+				PromptFlags: []string{"-d", "-D", "--delete", "-m", "-M", "--move"},
 				Subcommands: map[string]*Rule{
 					"-l":             {Default: Allow},
 					"--list":         {Default: Allow},
@@ -134,7 +134,7 @@ var Default = map[string]*Rule{
 				},
 			},
 			"tag": {
-				DenyFlags: []string{"-d", "--delete"},
+				PromptFlags: []string{"-d", "--delete"},
 				Subcommands: map[string]*Rule{
 					"-l":       {Default: Allow},
 					"--list":   {Default: Allow},
@@ -161,7 +161,7 @@ var Default = map[string]*Rule{
 				},
 			},
 			"config": {
-				DenyFlags: []string{"--global", "--system", "--file"},
+				PromptFlags: []string{"--global", "--system", "--file"},
 				Subcommands: map[string]*Rule{
 					"list":   {Default: Allow},
 					"get":    {Default: Allow},
@@ -180,8 +180,8 @@ var Default = map[string]*Rule{
 			"doc":     {Default: Allow},
 			"vet":     {Default: Allow},
 			"test": {
-				Default:   Allow,
-				DenyFlags: []string{"-c", "--coverprofile"},
+				Default:     Allow,
+				PromptFlags: []string{"-c", "--coverprofile"},
 			},
 			"build": {
 				Subcommands: map[string]*Rule{
@@ -204,6 +204,39 @@ var Default = map[string]*Rule{
 					"trace": {Default: Allow},
 				},
 			},
+		},
+	},
+
+	"gofmt": {
+		Default: Allow,
+		AllowFlags: []string{
+			"-l", "--list",
+			"-d", "--diff",
+			"-s", "--simplify",
+			"-e",
+			"-r", "--rewrite",
+			"-cpuprofile",
+			"-memprofile",
+			"-trace",
+		},
+	},
+	"gofumpt": {
+		Default: Allow,
+		AllowFlags: []string{
+			"-l",
+			"-d", "--diff",
+			"-e",
+			"-cpuprofile",
+			"-memprofile",
+			"-trace",
+		},
+	},
+	"goimports": {
+		Default: Allow,
+		AllowFlags: []string{
+			"-l",
+			"-d",
+			"-e",
 		},
 	},
 
@@ -310,7 +343,7 @@ var Default = map[string]*Rule{
 				},
 			},
 			"rollout": {
-				Default: NoOpinion,
+				Default: Prompt,
 				Subcommands: map[string]*Rule{
 					"status":  {Default: Allow},
 					"history": {Default: Allow},
@@ -345,7 +378,7 @@ var Default = map[string]*Rule{
 				},
 			},
 			"compose": {
-				Default: NoOpinion,
+				Default: Prompt,
 				Subcommands: map[string]*Rule{
 					"ps":   {Default: Allow},
 					"logs": {Default: Allow},
